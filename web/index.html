@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ClauseCatcher</title>
+</head>
+<body>
+  <h1>ClauseCatcher</h1>
+  <p>Placeholder page. Steps for a demo session:</p>
+  <ol>
+    <li>Upload a contract PDF (POST /api/contract) or load the demo contract (POST /api/contract/demo)</li>
+    <li>Give consent (POST /api/consent)</li>
+    <li>Start a session (POST /api/session/start)</li>
+    <li>Connect to /ws/session/{session_id} for live transcript + alerts</li>
+    <li>End the session and view the report (POST /api/session/{id}/end, GET /api/session/{id}/report)</li>
+  </ol>
+</body>
+</html>

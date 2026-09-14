@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Scratch / spike outputs
+**/out/
+*.log
+
+# 16 kHz raw audio originals (24k fixtures under audio_24k/ stay tracked)
+spikes/harness/audio/_tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp

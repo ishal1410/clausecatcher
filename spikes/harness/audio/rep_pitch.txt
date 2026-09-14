@@ -1,0 +1,4 @@
+correct: You can cancel with sixty days written notice before your renewal date each year.
+contradiction: Past fifty seats, we'll apply a ten percent volume discount automatically, no paperwork needed.
+contradiction: Our support team is available twenty four seven as part of the standard plan.
+ambiguous: We take data security seriously, you don't have to worry about anything after you leave us.
