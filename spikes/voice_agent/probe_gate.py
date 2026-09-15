@@ -3,17 +3,26 @@ probe_gate.py -- single-process live gating probe for the user's ≤$0.30
 morning approval window (PROBE_B_SPEC.md B3 + B4). Exercises
 alert_agent.AlertAgent exactly as tomorrow's demo will:
 
-  Phase 1 (cold, N=2): open() -> speak(alert for clause 3.1) -> close(),
-      each a fresh session -- measures cold connect/ready/inject->audio.
-  Phase 2 (warm, N=1 session): open() once, idle 3s, speak() clause 6.1
-      then 3.1, then in the SAME session ask(question_text=... clause 4.2)
-      and, if harness/audio_24k/monitor_question.wav exists and is 24 kHz,
-      ask(question_wav=...) once. Then close().
+  Phase 1 (cold, N=1): open() -> speak(alert for clause 3.1, mode=
+      COLD_MODE) -> close() -- measures cold connect/ready/inject->audio
+      for the best-guess default mode.
+  Phase 2 (warm, N=1 session, hard-capped at WARM_SESSION_CAP_S): open()
+      once, idle WARM_IDLE_S, then decision-first order (top-ranked debug
+      variant FIRST so a cap-driven cut never drops it): speak(mode=
+      no_instructions, inject_delay_ms=EXTRA_DELAY_MS) -- probes whether a
+      delay between conversation.message and reply.create changes whether
+      the agent reads the injected text (no documented ack event for
+      conversation.message to wait on instead) -- then speak(alert for
+      clause 3.1, mode=mode) once per remaining mode in SPEAK_MODE_SEQUENCE,
+      then ONE ask(question_text=clause 4.2) and ONE ask(question_wav=
+      monitor_question.wav) if usable -- all in the SAME session, so mode
+      comparisons share identical session state. Then close().
 
 Total wall clock is hard-capped at HARD_CAP_S via asyncio.wait_for wrapping
 the whole run -- a backstop on top of AlertAgent's own per-call/per-session
-timeouts (see alert_agent.py: SESSION_READY_TIMEOUT_S, REPLY_TIMEOUT_S,
-TOOL_WAIT_TIMEOUT_S, HARD_SESSION_CAP_S).
+timeouts (see alert_agent.py: SESSION_READY_TIMEOUT_S, REPLY_DONE_TIMEOUT_S,
+TOOL_WAIT_TIMEOUT_S, HARD_SESSION_CAP_S) and on top of WARM_SESSION_CAP_S,
+which separately bounds just the one warm session.
 
 Reuses (imports, never copies) alert_agent.AlertAgent the same way
 spike_chain.py does: importlib.util.spec_from_file_location, since
@@ -53,11 +62,15 @@ MONITOR_WAV_PATH = SPIKES_DIR / "harness" / "audio_24k" / "monitor_question.wav"
 OUT_DIR = HERE / "out"
 
 HARD_CAP_S = 180  # whole-run wall-clock cap (task requirement)
+WARM_SESSION_CAP_S = 150  # hard cap on the one warm session (task requirement)
 COST_PER_SEC = 4.50 / 3600.0  # matches alert_agent.COST_PER_SEC -- verified Voice Agent pricing
 REQUIRED_WAV_RATE = 24000
 
-COLD_SECTION = "3.1"
-WARM_SECTIONS = ("6.1", "3.1")
+COLD_SECTION = "3.1"  # the one clause used for every speak() below (cold + every warm mode step)
+COLD_MODE = "no_instructions"  # best-guess default mode -- the only live-proven injection shape (Q1)
+SPEAK_MODE_SEQUENCE = ("no_instructions", "say_exactly", "message_and_say_exactly", "legacy")
+EXTRA_DELAY_MODE = "no_instructions"
+EXTRA_DELAY_MS = 800  # debugging-agent addition: probes conversation.message/reply.create race
 MONITOR_QUESTION_TEXT = "What does clause 4.2 say?"
 MONITOR_SECTION = "4.2"
 
@@ -125,22 +138,43 @@ def monitor_wav_usable() -> bool:
         return False
 
 
+def warm_step_order() -> list[str]:
+    """The exact ordered list of warm-session step labels run_warm() will
+    produce (decision-first: delay800 FIRST so a cap-driven cut never drops
+    it), for --dry-run visibility and tests -- never re-derived separately
+    from run_warm's own sequence."""
+    steps = [f"warm_speak_{EXTRA_DELAY_MODE}_delay{EXTRA_DELAY_MS}"]
+    steps += [f"warm_speak_{mode}" for mode in SPEAK_MODE_SEQUENCE]
+    steps.append("warm_ask_text")
+    if monitor_wav_usable():
+        steps.append("warm_ask_wav")
+    return steps
+
+
 def worst_case_cost_plan() -> dict:
     wav_included = monitor_wav_usable()
-    cold_s = 2 * COLD_RUN_EST_S
+    cold_s = COLD_RUN_EST_S
+    speak_steps = 1 + len(SPEAK_MODE_SEQUENCE)  # delay800 first, then the 4 modes
     warm_s = (
-        WARM_OPEN_EST_S + WARM_IDLE_S + 2 * SPEAK_EST_S + ASK_EST_S
-        + (ASK_EST_S if wav_included else 0) + WARM_CLOSE_EST_S
+        WARM_OPEN_EST_S + WARM_IDLE_S + speak_steps * SPEAK_EST_S
+        + ASK_EST_S  # the one ask_text step
+        + (ASK_EST_S if wav_included else 0)  # the one ask_wav step
+        + WARM_CLOSE_EST_S
     )
     total_s = cold_s + warm_s
     return {
-        "cold_runs": 2,
+        "cold_runs": 1,
         "cold_s_each_est": COLD_RUN_EST_S,
+        "warm_step_order": warm_step_order(),
+        "warm_modes": list(SPEAK_MODE_SEQUENCE),
+        "warm_ask_text_steps": 1,
+        "warm_ask_wav_steps": 1 if wav_included else 0,
         "warm_s_est": warm_s,
         "warm_ask_wav_included": wav_included,
         "worst_case_wall_s": total_s,
         "worst_case_cost_usd": round(total_s * COST_PER_SEC, 4),
         "hard_cap_s": HARD_CAP_S,
+        "warm_session_cap_s": WARM_SESSION_CAP_S,
     }
 
 
@@ -164,37 +198,41 @@ def grade_b4(setup_ok: bool, tool_called: bool, section_number_correct: bool, li
 
 def grade_all(result: dict) -> dict:
     b3_rows = []
-    for i, c in enumerate(result["cold_runs"], start=1):
+    for c in result["cold_runs"]:
         speak = c.get("speak") or {}
         b3_rows.append({
-            "label": f"cold_{i}_speak_{c.get('section_number')}",
+            "label": f"cold_speak_{c.get('section_number')}_{speak.get('mode', c.get('mode'))}",
             "verdict": grade_b3(c["setup_ok"], speak.get("literal_spoken", False), speak.get("first_audio_ms")),
-        })
-    warm = result["warm_run"]
-    for s in warm.get("speaks", []):
-        b3_rows.append({
-            "label": f"warm_speak_{s.get('section_number')}",
-            "verdict": grade_b3(warm["setup_ok"], s.get("literal_spoken", False), s.get("first_audio_ms")),
+            "similarity": speak.get("similarity"),
         })
 
+    warm = result["warm_run"]
     b4_rows = []
-    for label, step in (("warm_ask_text_4.2", warm.get("ask_text")), ("warm_ask_wav_4.2", warm.get("ask_wav"))):
-        if step is None:
-            continue
-        section_ok = str((step.get("tool_args") or {}).get("section_number")) == MONITOR_SECTION
-        b4_rows.append({
-            "label": label,
-            "verdict": grade_b4(warm["setup_ok"], step.get("tool_called", False), section_ok,
-                                 step.get("literal_spoken", False)),
-        })
+    for step in warm.get("steps", []):
+        kind = step.get("kind")
+        if kind == "b3":
+            b3_rows.append({
+                "label": step["label"],
+                "verdict": grade_b3(warm["setup_ok"], step.get("literal_spoken", False), step.get("first_audio_ms")),
+                "similarity": step.get("similarity"),
+            })
+        elif kind == "b4":
+            section_ok = str((step.get("tool_args") or {}).get("section_number")) == MONITOR_SECTION
+            b4_rows.append({
+                "label": step["label"],
+                "verdict": grade_b4(warm["setup_ok"], step.get("tool_called", False), section_ok,
+                                     step.get("literal_spoken", False)),
+                "similarity": step.get("similarity"),
+            })
     return {"b3": b3_rows, "b4": b4_rows}
 
 
 # ---- the two phases ---------------------------------------------------
 
-async def run_cold(agent_cls, api_key: str, clauses: list, text_map: dict, section_number: str, clock) -> dict:
+async def run_cold(agent_cls, api_key: str, clauses: list, text_map: dict, section_number: str, clock,
+                    mode: str = COLD_MODE) -> dict:
     agent = agent_cls(api_key, clauses, clock=clock)
-    step = {"section_number": section_number, "setup_ok": False, "open": None, "speak": None,
+    step = {"section_number": section_number, "mode": mode, "setup_ok": False, "open": None, "speak": None,
             "errors": [], "est_cost_usd": 0.0}
     try:
         try:
@@ -204,7 +242,7 @@ async def run_cold(agent_cls, api_key: str, clauses: list, text_map: dict, secti
             step["errors"].append(f"open failed: {type(e).__name__}: {e}")
             return step
         alert_text = build_alert_text(section_number, text_map)
-        step["speak"] = await agent.speak(alert_text)
+        step["speak"] = await agent.speak(alert_text, mode=mode)
     finally:
         with contextlib.suppress(Exception, asyncio.CancelledError):
             await agent.close()
@@ -213,24 +251,50 @@ async def run_cold(agent_cls, api_key: str, clauses: list, text_map: dict, secti
 
 
 async def run_warm(agent_cls, api_key: str, clauses: list, text_map: dict, clock) -> dict:
+    """ONE session (hard-capped at WARM_SESSION_CAP_S): idle, then in
+    decision-first order (top-ranked debug variant FIRST so a cap-driven cut
+    never drops it): speak(mode=EXTRA_DELAY_MODE, inject_delay_ms=
+    EXTRA_DELAY_MS) probing the conversation.message/reply.create race, then
+    speak(mode) once per remaining mode in SPEAK_MODE_SEQUENCE, then ONE
+    ask(text) and ONE ask(wav) (if usable) -- all sharing this session's
+    state. `steps` is an ordered list of dicts, each tagged "kind": "b3" (a
+    speak step) or "b4" (an ask step) so grade_all can grade each without
+    re-deriving the sequence."""
     agent = agent_cls(api_key, clauses, clock=clock)
-    warm = {"setup_ok": False, "open": None, "idle_s": WARM_IDLE_S, "speaks": [],
-            "ask_text": None, "ask_wav": None, "errors": [], "est_cost_usd": 0.0}
+    warm = {"setup_ok": False, "open": None, "idle_s": WARM_IDLE_S, "steps": [],
+            "errors": [], "est_cost_usd": 0.0}
+
+    async def _run():
+        warm["open"] = await agent.open()
+        warm["setup_ok"] = True
+        await asyncio.sleep(WARM_IDLE_S)
+        alert_text = build_alert_text(COLD_SECTION, text_map)
+
+        delay_result = await agent.speak(alert_text, mode=EXTRA_DELAY_MODE, inject_delay_ms=EXTRA_DELAY_MS)
+        warm["steps"].append({
+            "label": f"warm_speak_{EXTRA_DELAY_MODE}_delay{EXTRA_DELAY_MS}", "kind": "b3",
+            "section_number": COLD_SECTION, **delay_result,
+        })
+
+        for mode in SPEAK_MODE_SEQUENCE:
+            speak_result = await agent.speak(alert_text, mode=mode)
+            warm["steps"].append({"label": f"warm_speak_{mode}", "kind": "b3",
+                                   "section_number": COLD_SECTION, **speak_result})
+
+        ask_text_result = await agent.ask(question_text=MONITOR_QUESTION_TEXT)
+        warm["steps"].append({"label": "warm_ask_text", "kind": "b4", **ask_text_result})
+
+        if monitor_wav_usable():
+            ask_wav_result = await agent.ask(question_wav=str(MONITOR_WAV_PATH))
+            warm["steps"].append({"label": "warm_ask_wav", "kind": "b4", **ask_wav_result})
+
     try:
         try:
-            warm["open"] = await agent.open()
-            warm["setup_ok"] = True
+            await asyncio.wait_for(_run(), timeout=WARM_SESSION_CAP_S)
+        except asyncio.TimeoutError:
+            warm["errors"].append(f"WARM_SESSION_CAP_S={WARM_SESSION_CAP_S}s exceeded -- warm run aborted")
         except Exception as e:
-            warm["errors"].append(f"open failed: {type(e).__name__}: {e}")
-            return warm
-        await asyncio.sleep(WARM_IDLE_S)
-        for section_number in WARM_SECTIONS:
-            alert_text = build_alert_text(section_number, text_map)
-            speak_result = await agent.speak(alert_text)
-            warm["speaks"].append({"section_number": section_number, **speak_result})
-        warm["ask_text"] = await agent.ask(question_text=MONITOR_QUESTION_TEXT)
-        if monitor_wav_usable():
-            warm["ask_wav"] = await agent.ask(question_wav=str(MONITOR_WAV_PATH))
+            warm["errors"].append(f"warm run failed: {type(e).__name__}: {e}")
     finally:
         with contextlib.suppress(Exception, asyncio.CancelledError):
             await agent.close()
@@ -244,10 +308,7 @@ async def main_async(api_key: str) -> dict:
     alert_agent_mod = _load_module(ALERT_AGENT_SRC, "_probe_gate_alert_agent_reuse")
     AlertAgent = alert_agent_mod.AlertAgent
 
-    cold_runs = [
-        await run_cold(AlertAgent, api_key, clauses, text_map, COLD_SECTION, time.monotonic)
-        for _ in range(2)
-    ]
+    cold_runs = [await run_cold(AlertAgent, api_key, clauses, text_map, COLD_SECTION, time.monotonic)]
     warm_run = await run_warm(AlertAgent, api_key, clauses, text_map, time.monotonic)
 
     total_cost = sum(c["est_cost_usd"] for c in cold_runs) + warm_run["est_cost_usd"]
@@ -264,14 +325,14 @@ async def main_async(api_key: str) -> dict:
 
 def print_summary(result: dict) -> None:
     grading = result.get("grading", {"b3": [], "b4": []})
-    print("\n--- B3 (Reactive Voice Agent alert: cold + warm) ---")
+    print("\n--- B3 (Reactive Voice Agent alert: cold + warm, per mode) ---")
     print(B3_THRESHOLD_QUOTE)
     for row in grading["b3"]:
-        print(f"  {row['label']:<28} {row['verdict']}")
-    print("\n--- B4 (Monitor tool call at 24 kHz) ---")
+        print(f"  {row['label']:<36} {row['verdict']:<8} similarity={row.get('similarity')}")
+    print("\n--- B4 (Monitor tool call at 24 kHz, per mode) ---")
     print(B4_THRESHOLD_QUOTE)
     for row in grading["b4"]:
-        print(f"  {row['label']:<28} {row['verdict']}")
+        print(f"  {row['label']:<36} {row['verdict']:<8} similarity={row.get('similarity')}")
     cost = result.get("total_est_cost_usd")
     cost_str = f"${cost:.4f}" if cost is not None else "unknown (aborted)"
     print(f"\ntotal_est_cost_usd={cost_str}  elapsed_total_s={result.get('elapsed_total_s')}")
@@ -309,7 +370,7 @@ def main(argv=None):
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "elapsed_total_s": HARD_CAP_S,
             "error": f"HARD_CAP_S={HARD_CAP_S}s exceeded -- run aborted",
-            "cold_runs": [], "warm_run": {"speaks": [], "setup_ok": False}, "total_est_cost_usd": None,
+            "cold_runs": [], "warm_run": {"steps": [], "setup_ok": False}, "total_est_cost_usd": None,
             "grading": {"b3": [], "b4": []},
         }
 

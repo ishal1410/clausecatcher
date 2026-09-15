@@ -972,3 +972,115 @@ check" conclusion: the two-connection architecture (Streaming v3 for
 listen-only transcription + a separate Voice Agent session for replies)
 remains the only documented-safe design for ClauseCatcher.
 
+---
+
+## Alert verbatim debug (2026-09-14)
+
+**Trigger:** live probe `out/probe_gate_20260914T225500Z.json` (2026-09-14
+22:55Z). `AlertAgent.speak(text)` sends `conversation.message`
+(`role="user"`, `content="Contract alert: section {N} says: {literal_text}"`
+— built by `probe_gate.py:build_alert_text`) then
+`{"type":"reply.create","instructions":"Read the compliance alert you were
+just given verbatim, word for word."}`. In 4/4 runs (2 cold, 2 warm) the
+agent replied **"Please provide the compliance alert you would like me to
+read[ back]."** — it behaved as though it had received no alert content at
+all, not as though it received and misread/paraphrased one.
+Separately, `ask(question_text=...)` → `tool.call lookup_clause
+{section_number:"4.2"}` → `tool.result` sent (`tool_result_sent: true`) →
+the spoken reply **paraphrased** the returned clause text ("Section four dot
+two states that the contract auto renews for twelve months unless...")
+despite `SYSTEM_PROMPT` (alert_agent.py:81-86) explicitly saying *"read back
+exactly what it returns."* This is a read-only doc check per this session's
+constraints — no AssemblyAI API calls were made; WebFetch/WebSearch of
+official docs only, and only `PROTOCOL.md` was appended (`alert_agent.py`,
+`probe_gate.py` read but not edited).
+
+Sources fetched (2026-09-14, this section):
+- https://www.assemblyai.com/docs/voice-agents/voice-agent-api/events-reference
+- https://www.assemblyai.com/docs/voice-agents/voice-agent-api/prompting-guide (fetched twice — second, narrower fetch corrects the first)
+- https://www.assemblyai.com/docs/voice-agents/voice-agent-api/message-sequence
+- https://www.assemblyai.com/docs/voice-agents/voice-agent-api
+- WebSearch: `AssemblyAI voice agent "conversation.message" "reply.create" race delay verbatim read exactly`
+
+### 1. What the docs say, quoted
+
+| Question | Quote (verbatim unless marked) | Source |
+|---|---|---|
+| Does `reply.create.instructions` replace `system_prompt`? | `"instructions" \| string \| Optional. One-shot instruction the agent uses to compose this reply. Does not modify "system_prompt".` | `events-reference` |
+| Does `conversation.message` content join the context used by later replies? | `"Inject a message into the conversation context without the user speaking it. Useful for seeding context or replaying prior history. This does not by itself make the agent reply; send reply.create if you want an immediate response."` (field table: `role`: `"user"` or `"system"`; `content`: `"The message text to add to the conversation."`) | `events-reference` |
+| Is there any commit/ack event between `conversation.message` and a following `reply.create` (e.g. `conversation.item.created`)? | **NOT DOCUMENTED — no such event exists.** The full server→client event list (already recorded earlier in this file, and re-checked here) is exactly: `session.ready`, `session.updated`, `session.ended`, `input.speech.started`, `input.speech.stopped`, `transcript.user.delta`, `transcript.user`, `reply.started`, `reply.audio`, `transcript.agent.delta`, `transcript.agent`, `reply.done`, `tool.call`, `session.error`. No `conversation.item.created`/`message.ack`/`context.updated` or equivalent. `message-sequence` was fetched specifically for a `conversation.message`→`reply.create` example and **does not reference either event type at all.** | `events-reference`, `message-sequence` |
+| Is there a documented "say exactly"/verbatim/TTS-only event or mode? | **NOT DOCUMENTED.** No event named `say`, `speak`, `response.audio`, `text-to-speech`, or `verbatim` exists; the only audio-out event is `reply.audio` (base64 PCM16 chunks of whatever the LLM+TTS pipeline composed). No output-modality / TTS-passthrough field was found in the exhaustive session-field inventory already recorded elsewhere in this file (§"Full documented session field inventory"). | `events-reference` (cross-checked against this file's own prior field inventory) |
+| What happens after `tool.result`? | `"The agent generates a normal reply (reply.started → reply.audio → transcript.agent → reply.done) using the provided instructions on top of the existing system prompt and conversation history."` / `"A fresh reply.started … reply.done cycle follows once the tool result is received."` | `events-reference`, `message-sequence` |
+| Does the reply that follows `tool.result` verbatim-echo the tool's return value, or compose freely? | **NOT STATED EITHER WAY.** `message-sequence` was fetched specifically for an example of what that reply *contains* and returned: *"the documentation provides no example of what the agent's actual reply contains after receiving a tool result."* The "normal reply ... using system prompt and conversation history" wording above implies free composition (an LLM turn, not a passthrough), but no page states this in so many words. | `message-sequence` |
+| Does `prompting-guide` discourage verbatim/word-for-word reading in favor of paraphrase? | **RETRACTED on re-check — do not treat as documented.** A first, broad fetch produced an *inferred* claim ("suggests paraphrasing is preferred over word-for-word reading") from the "Sound human" section. A second, targeted re-fetch asking specifically for that wording found: *"I cannot find any section that discourages literal/verbatim/word-for-word repetition or encourages paraphrasing instead of reading text exactly as given. The 'Sound human' section addresses tone, identity, matching user energy, and avoiding bot-like phrases"* — nothing about verbatim vs. paraphrase. Logged here per this file's own evidence-hygiene standard: the first WebFetch's synthesis was not itself a quote and does not hold up. | `prompting-guide` (two fetches, second corrects first) |
+| Does `prompting-guide` give any precedent for literal/mechanical read-aloud instructions? | Yes, for a narrower case: *"When reading URLs: Say 'dot' for periods, 'slash' for slashes"* and *"When reading code or field names: Say 'underscore' for underscores, Spell out abbreviations."* This shows the documented prompting style for this API does support giving the model mechanical, literal verbalization rules — it's just never generalized in-docs to "read this whole block verbatim." | `prompting-guide` |
+| Client-side tool constraint that bears on the tool-result reply | *"Send `tool.result` when `reply.done` is the latest event you've received." Sending results earlier or later breaks turn-taking mechanics.* — i.e. the client cannot itself insert an extra `reply.create` into the tool-call→tool-result→reply gap; that reply is server-triggered automatically per the `message-sequence` quote above. | `tools/client-side-tools` (already quoted earlier in this file, §3a) |
+
+### 2. Ranked candidate causes
+
+**#1 — Timing/race: `reply.create` composes before `conversation.message` is applied to context. (HIGH confidence, matches the exact failure text)**
+- For: `speak()` sends both events back-to-back with no wait and no documented ack/commit event exists to sequence on (table above) — a WS `send()` completing only proves the client wrote the frame, not that the server finished appending it to conversation state before starting reply composition from a context snapshot. The observed reply — *"Please provide the compliance alert you would like me to read [back]."* — is not a mangled/paraphrased version of the injected alert; it is exactly what the model would say if, at compose time, its context contained the `reply.create` instructions ("read the compliance alert you were just given") but **no alert content to point at**. That is a much more specific match to "missing content" than to "present-but-mishandled content."
+- Against: none found that rules this out. The one candidate counter-evidence — Q1 (`spike_voice_agent.py` `test_proactive`, 2026-09-13) sent the identical `conversation.message`+`reply.create` shape with no delay and *did* produce a spoken reply — is **not actually strong counter-evidence** on closer look: Q1's injected content was itself an instruction ("FLAG: greet the user proactively right now"), and Q1's pass bar was only "a reply happened with no prior user speech." A model can satisfy that bar with a generic greeting even if the injected message hadn't yet landed in context — Q1 never required the model to *quote back specific injected data*, so it cannot distinguish "content committed in time" from "content missing, model improvised anyway." Q1's success and this failure are therefore consistent with the same race, not contradictory.
+
+**#2 — Content mistaken for an ambiguous user utterance rather than "the alert" (MEDIUM-LOW confidence)**
+- For: `role="user"` content is prefixed `"Contract alert: section {N} says: ..."`, declarative, not phrased as a command — theoretically the model could fail to bind `reply.create`'s deictic "the compliance alert you were just given" to that specific prior turn.
+- Against: this is a weaker match to the observed text than #1. A model that *sees* a declarative alert one turn back but merely fails to recognize it as "the" alert would more plausibly produce a paraphrase, a request for clarification referencing *something* it saw, or a generic acknowledgement — not a clean, content-free "please provide the compliance alert," which reads as though the turn simply is not there. Treat as a secondary/compounding factor under #1 (e.g. if the race is partial — message arrives but not yet indexed/labeled as "the most recent user turn" — #1 and #2 could combine), not a standalone leading cause.
+
+**#3 — Weak instruction-following on "verbatim," independent of timing (HIGH confidence, but for the `ask()`/tool-result failure specifically, not the `speak()` failure)**
+- For: the `ask()` tool-result case proves the model does not reliably honor an explicit "read back exactly what it returns" instruction (`SYSTEM_PROMPT`, alert_agent.py:85) even when the content is unambiguously present in context — `tool_result_sent: true`, and the reply still paraphrased ("Section four dot two states that... auto renews for twelve months..."). No documented mechanism forces literal passthrough of a `tool.result` value (table above: the post-tool.result reply is an ordinary LLM turn "using system prompt and conversation history," not a passthrough), so this is consistent with the model simply not being a reliable verbatim-reader under either prompting path tried so far.
+- Against as the explanation for the `speak()` failure specifically: it doesn't fit the observed text. A model failing to honor "verbatim" while the content IS present would still *use* the content in some form (paraphrase, summary, partial quote) — not ask for it to be provided. So: rank #3 as the primary, independent explanation for the **tool-result paraphrase**, and only a secondary contributor to the **`speak()` failure** (i.e., even after #1/#2 are fixed, #3 may still need separate handling for `speak()` to reliably go verbatim rather than just "on-topic").
+
+### 3. Variants to test live, next session (≤4, one `speak()` each)
+
+Each variant changes exactly one variable vs. the current failing shape (`conversation.message` role=user + `reply.create` with instructions, no delay). All use the same alert text placeholder `<ALERT_TEXT>` = `build_alert_text()`'s output, e.g. `"Contract alert: section 3.1 says: <literal_text>"`.
+
+**V1 — isolates #1 (timing).** Identical to the failing shape, but insert a client-side wait between the two sends (no protocol event to wait on, since none is documented — a fixed delay is the only available lever):
+```json
+{"type": "conversation.message", "role": "user", "content": "<ALERT_TEXT>"}
+```
+*(client waits ~300-500ms here, no event sent)*
+```json
+{"type": "reply.create", "instructions": "Read the compliance alert you were just given verbatim, word for word."}
+```
+
+**V2 — isolates whether `instructions` itself is the problem (Q1-shape ablation).** Same injection, but `reply.create` with no `instructions` field at all — the exact live-proven Q1 shape, relying on `SYSTEM_PROMPT` alone:
+```json
+{"type": "conversation.message", "role": "user", "content": "<ALERT_TEXT>"}
+```
+```json
+{"type": "reply.create"}
+```
+
+**V3 — removes `conversation.message` from the picture entirely.** Puts the literal text directly inside `reply.create.instructions` (documented as the one-shot "compose this reply" directive) — no prior injection turn to race against or misfile:
+```json
+{"type": "reply.create", "instructions": "Say exactly the following and nothing else, with no preamble, no additions, no commentary: <ALERT_TEXT>"}
+```
+
+**V4 — isolates #2 (role).** Same as the failing shape but `role="system"` — the other documented-but-never-live-tested value (module docstring, alert_agent.py:25-34), on the theory that system-role content may be treated as authoritative context rather than an utterance requiring interpretation:
+```json
+{"type": "conversation.message", "role": "system", "content": "<ALERT_TEXT>"}
+```
+```json
+{"type": "reply.create", "instructions": "Read the compliance alert you were just given verbatim, word for word."}
+```
+
+If V1 fixes it and V2-with-delay (not separately budgeted above, but the obvious next probe) also works, the race (#1) is confirmed as sufficient; if V1 alone doesn't fix it, compare against V3/V4 to see whether removing the injection turn or changing its role does better — that would point at #2 over #1.
+
+### Tool-result path: how to get a verbatim reading
+
+No documented mechanism exists to inject per-response `instructions` into the reply that follows `tool.result` — per the table above, that reply is **server-auto-triggered** ("a fresh `reply.started`…`reply.done` cycle follows once the tool result is received"), and the client-side-tools constraint (*"send `tool.result` when `reply.done` is the latest event you've received"*) means there is no client-controlled gap in which to fire an extra `reply.create` with tool-specific verbatim instructions — doing so would violate the documented turn-taking constraint. The only documented lever left is `system_prompt` wording (mutable mid-session per the field inventory already in this file). Recommend strengthening it past the current "read back exactly what it returns," using the same mechanical, literal style the docs themselves use for URLs/code (`prompting-guide`, quoted above) rather than a generic "verbatim" adjective, e.g.: *"When `lookup_clause` returns text, your entire reply must be that returned text, character-for-character, with no introduction (never say 'Section X states that...'), no summary, and no added commentary — convert only punctuation to spoken form per the formatting rules above."* This is a recommendation only; not live-tested in this session (no AssemblyAI calls made).
+
+### 4. Normalization note — `_literal_spoken`/`_normalize` (alert_agent.py:89-101)
+
+Requested equivalences: `"twelve months"` == `"12 months"`; `"4.2"` == `"four point two"`/`"four dot two"`. Recommended rules, and a bug this session found in the existing implementation:
+
+1. **Existing bug, independent of the verbatim-injection issue above:** `_normalize()`'s regex `re.sub(r"[^\w\s]", "", s.lower())` strips the `.` out of decimal numbers — `"4.2"` normalizes to `"42"`, not a form comparable to `"four point two"`. Even a fully-fixed injection/timing path would still fail `literal_spoken` grading on any clause id or decimal figure, because the literal_text side (`"4.2"`) and a correctly-spoken transcript side (`"four point two"` → today's normalizer can't even get that to `"four two"`, since "point" survives as a word and "4.2"→"42" loses the digit boundary) can never align under the current function.
+2. **Direction to normalize in:** convert the **spoken/word-number side to digits**, not the other way around — contract section numbers are canonically digit form already, and the word-number vocabulary needed (`zero`..`twenty`, tens, `hundred`, decimal connector) is small and well-defined, vs. expanding arbitrary digit strings in `literal_text` to word form (ambiguous: `"12"` → `"twelve"` vs `"one two"`, `"$500"` → `"five hundred dollars"` vs `"five zero zero"`).
+3. **Concrete normalization order** (apply to `agent_transcript` before the existing lowercase/strip/collapse):
+   a. Lowercase.
+   b. Token-scan for runs of number-words (`zero`-`nineteen`, tens `twenty`/`thirty`/.../`ninety`, `hundred`) and collapse each run to its digit string (`"twelve"` → `"12"`).
+   c. Where a decimal connector word (`"point"` or `"dot"` — treat as synonyms) sits directly between two now-digit tokens, merge them with a literal `.` (`"4"` `"point"` `"2"` → `"4.2"`; equally `"4"` `"dot"` `"2"` → `"4.2"`).
+   d. *Then* strip punctuation, but only characters that are **not** a `.` sitting between two digits (so the merged decimal from step c survives) — collapse whitespace as today.
+   e. Apply the identical pipeline to `literal_text` too (idempotent — digits/decimals already in that form pass through unchanged), so both sides go through one function and the substring check (`_literal_spoken`) stays as-is.
+4. Do **not** attempt the reverse (digit→word expansion) as the primary path — keep it, if ever needed, only as a fallback for cases where `literal_text` itself contains spelled-out numbers the contract wrote in words (not observed in `fake_contract.json` so far — no evidence this case currently occurs).
+

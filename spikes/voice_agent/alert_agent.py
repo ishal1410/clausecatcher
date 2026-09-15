@@ -48,6 +48,7 @@ import json
 import re
 import time
 import wave
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import websockets
@@ -71,8 +72,10 @@ CONNECT_TIMEOUT_S = 15
 SESSION_READY_TIMEOUT_S = 10
 CLEANUP_TIMEOUT_S = 3
 SEND_TIMEOUT_S = 5            # bounds every individual ws.send()
-REPLY_TIMEOUT_S = 20          # bound on waiting for reply.done after speak()/ask() triggers a reply
+REPLY_TIMEOUT_S = 20          # unused by speak()/ask() reading windows now (see REPLY_DONE_TIMEOUT_S) -- kept so old callers/tests referencing it don't hit AttributeError
 TOOL_WAIT_TIMEOUT_S = 15      # bound on waiting for a tool.call to arrive after ask()
+REPLY_DONE_TIMEOUT_S = 15     # bound on waiting for reply.done for ONE reply -- speak() uses it once; ask() re-arms a fresh window after tool.result triggers the next (spoken-answer) reply, instead of counting down from call start
+STREAM_DEADLINE_MARGIN_S = 5.0  # safety margin (seconds) added on top of measured audio+silence duration when computing ask(question_wav=...)'s stream_wav deadline
 
 ALERT_ROLE = "user"  # see module docstring: the only live-proven injection role (Q1); override via alert_role= kwarg
 
@@ -82,23 +85,132 @@ SYSTEM_PROMPT = (
     "You are a terse compliance assistant. When given a compliance alert, "
     "read it back verbatim -- word for word, no additions, no commentary. "
     "When asked about a contract clause, call the lookup_clause tool with "
-    "its id and read back exactly what it returns."
+    "its id and read back exactly what it returns. When lookup_clause "
+    "returns text, speak that returned text exactly as written, word for "
+    "word; do not summarize or rephrase."
 )
 
+SPEAK_MODES = ("legacy", "no_instructions", "say_exactly", "message_and_say_exactly")
 
-def _normalize(s: str) -> str:
-    """lowercase, strip punctuation, collapse whitespace -- used for the
-    verbatim (literal_spoken) check so a TTS-introduced comma or double
-    space doesn't register as a mismatch."""
-    s = re.sub(r"[^\w\s]", "", s.lower())
+_LEGACY_INSTRUCTIONS = "Read the compliance alert you were just given verbatim, word for word."
+_SAY_EXACTLY_PREFIX = "Say exactly the following text and nothing else, word for word: "
+
+# ---- number-word -> digit conversion (normalize_for_match) ----------------
+# Covers 0-100 plus basic hundred/thousand compounds -- see normalize_for_match.
+_ONES = {
+    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
+    "eighteen": 18, "nineteen": 19,
+}
+_TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+    "seventy": 70, "eighty": 80, "ninety": 90,
+}
+_SCALES = {"hundred": 100, "thousand": 1000}
+_NUMBER_WORDS = set(_ONES) | set(_TENS) | set(_SCALES)
+
+
+def _words_to_number(tokens: list[str], start: int):
+    """Parse a number-word run starting at tokens[start]. Returns
+    (value, next_index) or None. Stops after one ones/teen word per tens
+    group so "twenty four seven" parses as 24 then 7, not 20+4+7 -- matches
+    the spoken-idiom case ("24/7") rather than a single number."""
+    if tokens[start] not in _NUMBER_WORDS:
+        return None
+    i = start
+    total = 0
+    current = 0
+    matched = False
+    has_ones = False
+    while i < len(tokens):
+        w = tokens[i]
+        if w in _ONES:
+            if has_ones:
+                break
+            current += _ONES[w]
+            has_ones = True
+            matched = True
+            i += 1
+        elif w in _TENS:
+            if has_ones:
+                break
+            current += _TENS[w]
+            matched = True
+            i += 1
+        elif w in _SCALES:
+            current = (current or 1) * _SCALES[w]
+            total += current
+            current = 0
+            has_ones = False
+            matched = True
+            i += 1
+        else:
+            break
+    if not matched:
+        return None
+    return total + current, i
+
+
+def normalize_for_match(s: str) -> str:
+    """Normalize text for verbatim/near-verbatim matching (literal_spoken +
+    similarity). lowercase; punctuation stripped (replaced with a space,
+    except a "." kept when it sits between two digits, e.g. "4.2"); "%" ->
+    " percent " (so "%"/"percent" both normalize to the word "percent");
+    number words 0-100 plus hundred/thousand compounds converted to digits
+    ("twelve"->"12", "sixty"->"60", "twenty four"->"24"); "N point N"/
+    "N dot N" -> "N.N" (e.g. "four point two"->"4.2"); "24/7" and "twenty
+    four seven" both -> "24 7"; whitespace collapsed."""
+    s = s.lower().replace("%", " percent ")
+    out = []
+    for i, ch in enumerate(s):
+        if ch.isalnum() or ch.isspace():
+            out.append(ch)
+        elif ch == "." and 0 < i < len(s) - 1 and s[i - 1].isdigit() and s[i + 1].isdigit():
+            out.append(ch)
+        else:
+            out.append(" ")
+    s = re.sub(r"\s+", " ", "".join(out)).strip()
+
+    tokens = s.split(" ") if s else []
+    result_tokens = []
+    i = 0
+    while i < len(tokens):
+        parsed = _words_to_number(tokens, i)
+        if parsed is not None:
+            value, next_i = parsed
+            result_tokens.append(str(value))
+            i = next_i
+        else:
+            result_tokens.append(tokens[i])
+            i += 1
+    s = " ".join(result_tokens)
+    s = re.sub(r"(\d+) (?:point|dot) (\d+)", r"\1.\2", s)
     return re.sub(r"\s+", " ", s).strip()
 
 
-def _literal_spoken(literal_text: str, agent_transcript: str) -> bool:
-    """True iff the normalized literal_text is a substring of the
-    normalized agent_transcript. Empty literal_text is never "spoken"."""
-    literal_text = _normalize(literal_text)
-    return bool(literal_text) and literal_text in _normalize(agent_transcript)
+def _grade_match(reference_text: str, transcript: str):
+    """(literal_spoken, similarity): literal_spoken is True iff the
+    normalized reference_text's tokens (whitespace-split) appear as a
+    contiguous subsequence of the normalized transcript's tokens -- token-
+    boundary aware, so "60 days" matches inside "we give 60 days notice"
+    but NOT inside "160 days" (substring-only containment would wrongly
+    match both; digits are single tokens after normalize_for_match, so
+    "160" != "60" and "4.25"/"14.2" != "4.2"). Empty reference -> False.
+    similarity is difflib SequenceMatcher's ratio on the two normalized
+    strings, rounded to 3 decimals -- lets a near-verbatim paraphrase
+    (fails literal_spoken) still be graded."""
+    norm_ref = normalize_for_match(reference_text)
+    norm_transcript = normalize_for_match(transcript)
+    ref_tokens = norm_ref.split()
+    transcript_tokens = norm_transcript.split()
+    n = len(ref_tokens)
+    spoken = bool(ref_tokens) and any(
+        transcript_tokens[i:i + n] == ref_tokens
+        for i in range(len(transcript_tokens) - n + 1)
+    )
+    similarity = round(SequenceMatcher(None, norm_ref, norm_transcript).ratio(), 3)
+    return spoken, similarity
 
 
 def _clause_lookup_map(clauses) -> dict:
@@ -270,37 +382,65 @@ class AlertAgent:
 
     # ---- actions ---------------------------------------------------------
 
-    async def speak(self, text: str) -> dict:
-        """Inject `text` via conversation.message (role=self.alert_role) then
-        trigger reply.create so the agent reads it back verbatim (per
-        SYSTEM_PROMPT). Never sends audio. Returns
-        {inject_ms, first_audio_ms, done_ms, agent_transcript, audio_chunks,
-        errors, role, literal_spoken} -- all *_ms relative to the start of
-        this call. literal_spoken is True iff the normalized `text` is a
-        substring of the normalized agent_transcript (see _literal_spoken).
-        A send failure (e.g. peer already closed) is recorded in `errors`
-        and returned, never raised."""
+    async def speak(self, text: str, *, mode: str = "no_instructions", inject_delay_ms: int = 0) -> dict:
+        """Inject `text` and trigger a reply, per `mode` (see SPEAK_MODES /
+        module docstring for what each mode sends live-verified 2026-09-14):
+          - "legacy": conversation.message(role=alert_role) + reply.create
+            with the old generic "read it back" instructions -- kept only
+            for comparison, this is the shape that made the agent say
+            "Please provide the compliance alert..." (content ignored).
+          - "no_instructions": conversation.message(role=alert_role) +
+            reply.create with NO instructions key (the only live-proven
+            injection shape, Q1).
+          - "say_exactly": no conversation.message at all; reply.create
+            alone, `text` embedded in its instructions.
+          - "message_and_say_exactly": both -- conversation.message AND the
+            say_exactly-style reply.create instructions.
+        `inject_delay_ms` sleeps that many ms between the conversation.message
+        send and the reply.create send (probing whether reply.create can
+        race ahead of conversation.message landing in context -- there is no
+        documented ack event for conversation.message to wait on instead).
+        Ignored for "say_exactly" (no message is sent, nothing to delay
+        after). Never sends audio. Returns {inject_ms, first_audio_ms,
+        done_ms, agent_transcript, audio_chunks, errors, role, mode,
+        inject_delay_ms, literal_spoken, similarity} -- all *_ms relative to
+        the start of this call. literal_spoken/similarity come from
+        _grade_match(text, agent_transcript) (see normalize_for_match). A
+        send failure (e.g. peer already closed) is recorded in `errors` and
+        returned, never raised. Keeps reading until reply.done for the
+        reply this call triggered, bounded by REPLY_DONE_TIMEOUT_S."""
+        if mode not in SPEAK_MODES:
+            raise ValueError(f"unknown speak() mode {mode!r} -- must be one of {SPEAK_MODES}")
         t0 = self.clock()
         result = {
             "inject_ms": None, "first_audio_ms": None, "done_ms": None,
             "agent_transcript": "", "audio_chunks": 0, "errors": [], "role": self.alert_role,
-            "literal_spoken": False,
+            "mode": mode, "inject_delay_ms": inject_delay_ms,
+            "literal_spoken": False, "similarity": 0.0,
         }
+        sends_message = mode in ("legacy", "no_instructions", "message_and_say_exactly")
         q: asyncio.Queue = asyncio.Queue()
         self._dispatch_queues.append(q)
         try:
             try:
-                await self._send({"type": "conversation.message", "role": self.alert_role, "content": text})
-                await self._send({
-                    "type": "reply.create",
-                    "instructions": "Read the compliance alert you were just given verbatim, word for word.",
-                })
+                if sends_message:
+                    await self._send({"type": "conversation.message", "role": self.alert_role, "content": text})
+                    if inject_delay_ms:
+                        await asyncio.sleep(inject_delay_ms / 1000.0)
+                if mode == "legacy":
+                    await self._send({"type": "reply.create", "instructions": _LEGACY_INSTRUCTIONS})
+                elif mode == "no_instructions":
+                    await self._send({"type": "reply.create"})
+                else:  # say_exactly, message_and_say_exactly
+                    await self._send({"type": "reply.create", "instructions": _SAY_EXACTLY_PREFIX + text})
             except Exception as e:
                 result["errors"].append(f"send failed: {type(e).__name__}: {e}")
                 return result
             result["inject_ms"] = round((self.clock() - t0) * 1000)
 
-            deadline = t0 + REPLY_TIMEOUT_S
+            transcript_final = None
+            transcript_deltas: list[str] = []
+            deadline = t0 + REPLY_DONE_TIMEOUT_S
             while True:
                 remaining = deadline - self.clock()
                 if remaining <= 0:
@@ -315,15 +455,18 @@ class AlertAgent:
                     if result["first_audio_ms"] is None:
                         result["first_audio_ms"] = round((self.clock() - t0) * 1000)
                 elif etype == "transcript.agent":
-                    result["agent_transcript"] = evt.get("text", "")
+                    transcript_final = evt.get("text", "")
+                elif etype == "transcript.agent.delta":
+                    transcript_deltas.append(evt.get("delta") or evt.get("text") or "")
                 elif etype in ("session.error", "error"):
                     result["errors"].append(evt)
                 elif etype == "reply.done":
                     result["done_ms"] = round((self.clock() - t0) * 1000)
                     break
+            result["agent_transcript"] = transcript_final if transcript_final is not None else "".join(transcript_deltas)
         finally:
             self._dispatch_queues.remove(q)
-            result["literal_spoken"] = _literal_spoken(text, result["agent_transcript"])
+            result["literal_spoken"], result["similarity"] = _grade_match(text, result["agent_transcript"])
         return result
 
     async def ask(self, question_text: str | None = None, question_wav=None) -> dict:
@@ -334,16 +477,22 @@ class AlertAgent:
         (no network) before anything is sent; a mismatch is recorded in
         `errors` and returned immediately. Handles the resulting tool.call
         by sending back the literal clause text for section_number from
-        `clauses` (unknown section_number -> "No such clause"). Returns
-        {tool_called, tool_args, tool_result_sent, first_audio_ms,
-        agent_transcript, literal_spoken, errors}. literal_spoken is True
-        iff the normalized clause text sent back via tool.result is a
-        substring of the normalized agent_transcript (see _literal_spoken)
-        -- stays False if the tool was never called."""
+        `clauses` (unknown section_number -> "No such clause"), then keeps
+        reading for the NEXT reply.done -- the tool.result-triggered reply
+        that actually speaks the answer -- instead of the original
+        call-start deadline, which live-measured 2026-09-14 could expire
+        before that second reply arrived ("spoken answer... arrived after
+        ask() stopped reading"). Each reply.done wait is bounded by its own
+        fresh REPLY_DONE_TIMEOUT_S window. Returns {tool_called, tool_args,
+        tool_result_sent, first_audio_ms, agent_transcript, literal_spoken,
+        similarity, errors}. literal_spoken/similarity come from
+        _grade_match(clause_text_sent, agent_transcript) -- stay at their
+        defaults (False / 0.0) if the tool was never called."""
         t0 = self.clock()
         result = {
             "tool_called": False, "tool_args": None, "tool_result_sent": False,
-            "first_audio_ms": None, "agent_transcript": "", "literal_spoken": False, "errors": [],
+            "first_audio_ms": None, "agent_transcript": "", "literal_spoken": False,
+            "similarity": 0.0, "errors": [],
         }
         if question_text is None and question_wav is None:
             result["errors"].append("ask() needs question_text or question_wav")
@@ -371,7 +520,17 @@ class AlertAgent:
                         )
                         return result
                     pcm, rate = _sva.load_wav(wav_path)
-                    stream_deadline = t0 + REPLY_TIMEOUT_S
+                    # stream_wav's deadline is compared against time.time()
+                    # (wall clock) INSIDE spike_voice_agent.py, so it must be
+                    # computed from time.time() here too, at send time --
+                    # never from self.clock()/t0 (which defaults to
+                    # time.monotonic(), an unrelated epoch on this platform).
+                    # That clock mismatch is exactly what made ask(question_wav=...)
+                    # send 0 bytes live 2026-09-14 ("stream_wav hit deadline,
+                    # stopped early after 0 bytes"): a monotonic-based deadline
+                    # compared against time.time() looked already-expired.
+                    audio_duration_s = len(pcm) / (rate * _sva.SAMPLE_WIDTH_BYTES * _sva.CHANNELS)
+                    stream_deadline = time.time() + audio_duration_s + 0.5 + STREAM_DEADLINE_MARGIN_S
                     stream_info = await _sva.stream_wav(self.ws, pcm, rate, "AlertAgent.ask", stream_deadline)
                     if stream_info.get("error"):
                         result["errors"].append(f"stream failed: {stream_info['error']}")
@@ -380,7 +539,18 @@ class AlertAgent:
                 result["errors"].append(f"send failed: {type(e).__name__}: {e}")
                 return result
 
-            deadline = t0 + max(REPLY_TIMEOUT_S, TOOL_WAIT_TIMEOUT_S)
+            transcript_final = None
+            transcript_deltas: list[str] = []
+            # Tracks whether any reply.audio/transcript.agent(.delta) has
+            # arrived since tool.result was sent. A tool.call's own
+            # "interactive" reply can complete (its own bare reply.done,
+            # carrying no content) BEFORE we've even sent tool.result back --
+            # see TestAskWaitsForReplyDoneAfterToolResult. That reply.done
+            # must be ignored; only a reply.done that arrives WITH content
+            # (or, when no tool was called at all, the first reply.done
+            # outright) ends the wait.
+            content_since_tool_result = False
+            deadline = t0 + REPLY_DONE_TIMEOUT_S
             while True:
                 remaining = deadline - self.clock()
                 if remaining <= 0:
@@ -404,19 +574,37 @@ class AlertAgent:
                             "result": clause_text, "is_error": False,
                         })
                         result["tool_result_sent"] = True
+                        # tool.result triggers the NEXT reply (the spoken
+                        # answer) -- reset the transcript accumulator and
+                        # re-arm a fresh REPLY_DONE_TIMEOUT_S window for it
+                        # instead of continuing to count down from t0.
+                        transcript_final = None
+                        transcript_deltas = []
+                        content_since_tool_result = False
+                        deadline = self.clock() + REPLY_DONE_TIMEOUT_S
                     except Exception as e:
                         result["errors"].append(f"tool.result send failed: {type(e).__name__}: {e}")
                 elif etype == "reply.audio":
+                    content_since_tool_result = True
                     if result["first_audio_ms"] is None:
                         result["first_audio_ms"] = round((self.clock() - t0) * 1000)
                 elif etype == "transcript.agent":
-                    result["agent_transcript"] = evt.get("text", "")
+                    transcript_final = evt.get("text", "")
+                    content_since_tool_result = True
+                elif etype == "transcript.agent.delta":
+                    transcript_deltas.append(evt.get("delta") or evt.get("text") or "")
+                    content_since_tool_result = True
                 elif etype in ("session.error", "error"):
                     result["errors"].append(evt)
                 elif etype == "reply.done":
+                    if result["tool_called"] and not content_since_tool_result:
+                        # bare reply.done from the transition-phase reply --
+                        # not the answer; keep reading for the real one.
+                        continue
                     break
+            result["agent_transcript"] = transcript_final if transcript_final is not None else "".join(transcript_deltas)
         finally:
             self._dispatch_queues.remove(q)
             if tool_clause_text is not None:
-                result["literal_spoken"] = _literal_spoken(tool_clause_text, result["agent_transcript"])
+                result["literal_spoken"], result["similarity"] = _grade_match(tool_clause_text, result["agent_transcript"])
         return result
