@@ -2,17 +2,100 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ClauseCatcher</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>ClauseCatcher</h1>
-  <p>Placeholder page. Steps for a demo session:</p>
-  <ol>
-    <li>Upload a contract PDF (POST /api/contract) or load the demo contract (POST /api/contract/demo)</li>
-    <li>Give consent (POST /api/consent)</li>
-    <li>Start a session (POST /api/session/start)</li>
-    <li>Connect to /ws/session/{session_id} for live transcript + alerts</li>
-    <li>End the session and view the report (POST /api/session/{id}/end, GET /api/session/{id}/report)</li>
-  </ol>
+  <header class="app-header">
+    <div class="app-header__brand">
+      <span class="app-header__mark" aria-hidden="true">CC</span>
+      <h1>ClauseCatcher</h1>
+    </div>
+    <p class="app-header__tagline">Live compliance monitor for sales calls — flags what the rep says against the signed contract, in real time.</p>
+  </header>
+
+  <div id="toast-region" class="toast-region" aria-live="assertive" aria-atomic="true"></div>
+
+  <main class="app-main">
+    <!-- Step 1 & 2: load contract + consent -->
+    <section id="setup-section" class="panel" aria-labelledby="setup-heading">
+      <h2 id="setup-heading">Set up the call</h2>
+
+      <div class="field-group">
+        <h3>1. Load the contract</h3>
+        <div class="button-row">
+          <label class="btn btn--secondary" for="pdf-input">
+            Upload contract PDF
+            <input id="pdf-input" type="file" accept="application/pdf" class="visually-hidden" />
+          </label>
+          <button id="demo-contract-btn" type="button" class="btn btn--secondary">Use demo contract</button>
+        </div>
+        <p id="contract-status" class="field-group__status" role="status">No contract loaded yet.</p>
+        <ul id="clause-list" class="clause-list" aria-label="Loaded clauses"></ul>
+      </div>
+
+      <div class="field-group">
+        <h3>2. Consent</h3>
+        <label class="checkbox-row">
+          <input id="consent-checkbox" type="checkbox" />
+          All parties have been notified this call is monitored.
+        </label>
+      </div>
+
+      <button id="start-call-btn" type="button" class="btn btn--primary" disabled>Start call</button>
+    </section>
+
+    <!-- Step 3-5: live call -->
+    <section id="call-section" class="panel call-panel" aria-labelledby="call-heading" hidden>
+      <div class="call-panel__toolbar">
+        <h2 id="call-heading">Call in progress</h2>
+        <div class="status-pills">
+          <span id="stt-pill" class="pill" data-state="idle">STT: —</span>
+          <span id="voice-pill" class="pill" data-state="idle">Voice: —</span>
+          <span id="speaking-indicator" class="pill pill--speaking" hidden>ClauseCatcher speaking…</span>
+        </div>
+        <button id="end-call-btn" type="button" class="btn btn--danger">End call</button>
+      </div>
+
+      <div class="call-panel__grid">
+        <div class="call-panel__column">
+          <h3>Transcript</h3>
+          <div id="transcript-log" class="transcript-log" aria-live="polite" aria-label="Live transcript"></div>
+
+          <div class="field-group">
+            <label for="simulate-input">Simulate rep line (demo / no-mic fallback)</label>
+            <div class="button-row">
+              <input id="simulate-input" type="text" placeholder="e.g. We can do 24/7 support for everyone" />
+              <button id="simulate-btn" type="button" class="btn btn--secondary">Send</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="ask-select">Ask about a clause</label>
+            <div class="button-row">
+              <select id="ask-select" aria-label="Clause section number"></select>
+              <button id="ask-btn" type="button" class="btn btn--secondary">Ask</button>
+            </div>
+            <div id="clause-card" class="clause-card" hidden></div>
+          </div>
+        </div>
+
+        <div class="call-panel__column">
+          <h3>Alerts</h3>
+          <ul id="alert-list" class="alert-list" aria-live="assertive" aria-label="Contradiction alerts"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 6: report -->
+    <section id="report-section" class="panel" aria-labelledby="report-heading" hidden>
+      <h2 id="report-heading">Call report</h2>
+      <div id="report-body" class="report-body"></div>
+      <button id="new-session-btn" type="button" class="btn btn--secondary">Start a new session</button>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -44,6 +44,15 @@ class ClauseCatcherApiTest(unittest.TestCase):
         self.assertEqual(resp.status_code, 201, resp.text)
         return resp.json()["session_id"]
 
+    def _expect_status(self, ws) -> dict:
+        """Every ws connect now opens with a status frame (no ASSEMBLYAI_API_KEY
+        in test env -> both disabled) before anything else is sent."""
+        msg = ws.receive_json()
+        self.assertEqual(msg["type"], "status")
+        self.assertEqual(msg["stt"], "disabled")
+        self.assertEqual(msg["voice"], "disabled")
+        return msg
+
     # -- basic routes ---------------------------------------------------
     def test_health(self) -> None:
         resp = self.client.get("/api/health")
@@ -98,6 +107,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
         session_id = self._ready_session()
         main.app.dependency_overrides[main.get_claim_checker] = lambda: contradiction_checker
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
+            self._expect_status(ws)
             ws.send_json({"type": "transcript", "text": "we'll knock ten percent off"})
             msg = ws.receive_json()
         self.assertEqual(msg["type"], "alert")
@@ -109,6 +119,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
         session_id = self._ready_session()
         main.app.dependency_overrides[main.get_claim_checker] = lambda: bad_clause_checker
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
+            self._expect_status(ws)
             ws.send_json({"type": "transcript", "text": "some claim"})
             # Prove no alert was sent for the transcript above: the next
             # response we get back is the reply to this ask, not an alert.
@@ -120,6 +131,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
         session_id = self._ready_session()
         main.app.dependency_overrides[main.get_claim_checker] = lambda: raising_checker
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
+            self._expect_status(ws)
             ws.send_json({"type": "transcript", "text": "some claim"})
             ws.send_json({"type": "ask", "section_number": "3.1"})
             msg = ws.receive_json()
@@ -128,6 +140,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
     def test_ws_ask_returns_clause(self) -> None:
         session_id = self._ready_session()
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
+            self._expect_status(ws)
             ws.send_json({"type": "ask", "section_number": "4.2"})
             msg = ws.receive_json()
         self.assertEqual(msg["type"], "clause")
@@ -136,6 +149,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
     def test_ws_ask_unknown_section_returns_error(self) -> None:
         session_id = self._ready_session()
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
+            self._expect_status(ws)
             ws.send_json({"type": "ask", "section_number": "999"})
             msg = ws.receive_json()
         self.assertEqual(msg["type"], "error")
@@ -145,6 +159,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
         session_id = self._ready_session()
         main.app.dependency_overrides[main.get_claim_checker] = lambda: contradiction_checker
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
+            self._expect_status(ws)
             ws.send_json({"type": "transcript", "text": "we'll knock ten percent off"})
             ws.receive_json()  # alert
 
@@ -157,6 +172,9 @@ class ClauseCatcherApiTest(unittest.TestCase):
         self.assertIn("3.1", report["contract_clauses_referenced"])
         self.assertIsNotNone(report["started_at"])
         self.assertIsNotNone(report["ended_at"])
+        self.assertIn("est_cost_usd", report)
+        self.assertIn("claim_check_calls", report)
+        self.assertIn("claim_check_errors", report)
 
         resp2 = self.client.get(f"/api/session/{session_id}/report")
         self.assertEqual(resp2.status_code, 200)
