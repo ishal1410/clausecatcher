@@ -46,7 +46,7 @@ MAX_PDF_BYTES = int(os.environ.get("CLAUSECATCHER_MAX_PDF_BYTES", 5 * 1024 * 102
 
 # Per finalized turn behavior tuning (see WS protocol behavior spec).
 ALERT_DEDUPE_S = 20.0
-CLAIM_CHECK_TIMEOUT_S = 10.0
+CLAIM_CHECK_TIMEOUT_S = 15.0  # must exceed claim_check.TIMEOUT_MS (12 s; Gemini minimum is 10 s)
 SPEAK_DRAIN_TIMEOUT_S = 5.0
 MIN_CLAIM_CHECK_WORDS = 4  # skip claim-check on very short fragments
 

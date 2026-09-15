@@ -31,7 +31,9 @@ logger = logging.getLogger("clausecatcher")
 
 DEFAULT_MODEL = os.environ.get("CLAUSECATCHER_GEMINI_MODEL", "gemini-3.5-flash-lite")
 CONFIDENCE_MIN = 0.6  # contradiction below this confidence downgrades to "unclear"
-TIMEOUT_MS = 8000
+# Gemini rejects client deadlines under 10 s (live 2026-09-15: "Manually set deadline 8s is too short.
+# Minimum allowed deadline is 10s."), which silently turned every check into "unclear".
+TIMEOUT_MS = 12000
 _VERDICTS = ("contradiction", "consistent", "unclear")
 
 _RESPONSE_SCHEMA = {
