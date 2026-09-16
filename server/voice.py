@@ -55,6 +55,26 @@ SYSTEM_PROMPT = (
 
 _SAY_EXACTLY_PREFIX = "Say exactly the following text and nothing else, word for word: "
 
+MAX_SPOKEN_CHARS = 600
+# control chars, zero-width, bidi overrides/isolates, invisible operators, BOM, tag chars
+_UNSAFE_CHARS_RE = re.compile(
+    "[\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff\U000E0000-\U000E007F]"
+)
+
+
+def sanitize_spoken_text(text: str) -> str:
+    """Make untrusted (e.g. PDF-extracted) text safe to embed in the
+    say-exactly instruction: invisible/control chars -> space, whitespace collapsed,
+    capped at MAX_SPOKEN_CHARS on a word boundary (+ "\u2026" when cut)."""
+    text = _UNSAFE_CHARS_RE.sub(" ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) <= MAX_SPOKEN_CHARS:
+        return text
+    cut = text[:MAX_SPOKEN_CHARS]
+    if text[MAX_SPOKEN_CHARS] != " " and " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip() + "\u2026"
+
 
 def get_token(api_key: str, expires_in_seconds: int = 300) -> str:
     """GET https://agents.assemblyai.com/v1/token -- Authorization: Bearer
@@ -292,6 +312,17 @@ class AlertSpeaker:
     # ---- session lifecycle ---------------------------------------------
 
     async def open(self) -> dict:
+        """See _open(). Any failure after the socket exists (session.update
+        send error, session.error, ready timeout, cancellation) closes it
+        before re-raising -- otherwise the caller drops us and the paid
+        upstream session stays open on keepalive pings."""
+        try:
+            return await self._open()
+        except BaseException:
+            await self.close()
+            raise
+
+    async def _open(self) -> dict:
         """Connect, send session.update, wait for session.ready (never
         session.updated, which may arrive first -- undocumented ordering).
         Returns {connect_ms, ready_ms}, both measured from the start of
@@ -300,9 +331,9 @@ class AlertSpeaker:
         t0 = self.clock()
         self._session_start = t0
         try:
-            token = self.token_fetch(self.api_key)
+            token = await asyncio.to_thread(self.token_fetch, self.api_key)
         except Exception as e:
-            raise VoiceSetupError(f"token fetch failed: {type(e).__name__}: {e}") from e
+            raise VoiceSetupError(f"token fetch failed: {type(e).__name__}") from e
 
         try:
             self.ws = await asyncio.wait_for(
@@ -314,7 +345,7 @@ class AlertSpeaker:
                 timeout=CONNECT_TIMEOUT_S,
             )
         except Exception as e:
-            raise VoiceSetupError(f"connect failed: {type(e).__name__}: {e}") from e
+            raise VoiceSetupError(f"connect failed: {type(e).__name__}") from e
         connect_ms = round((self.clock() - t0) * 1000)
 
         session_cfg = {
@@ -324,7 +355,7 @@ class AlertSpeaker:
         try:
             await self._send({"type": "session.update", "session": session_cfg})
         except Exception as e:
-            raise VoiceSetupError(f"session.update send failed: {type(e).__name__}: {e}") from e
+            raise VoiceSetupError(f"session.update send failed: {type(e).__name__}") from e
 
         setup_events: list = []
         ready_deadline = t0 + SESSION_READY_TIMEOUT_S
@@ -343,7 +374,7 @@ class AlertSpeaker:
                     f"no session.ready within {SESSION_READY_TIMEOUT_S:g}s; setup_events={types}"
                 )
             except Exception as e:
-                raise VoiceSetupError(f"setup failed: {type(e).__name__}: {e}") from e
+                raise VoiceSetupError(f"setup failed: {type(e).__name__}") from e
             try:
                 evt = json.loads(raw)
             except (json.JSONDecodeError, TypeError):
@@ -412,6 +443,11 @@ class AlertSpeaker:
         dispatch queue is registered right before the send and removed
         right after -- so an auto-reply that should never happen (no rep
         audio is ever sent) also can't leak into an unrelated alert."""
+        # ponytail: grading runs after the audio already went out, so a
+        # low-similarity (injected/paraphrased) reply is only flagged, not
+        # stopped. Upgrade path: grade transcript deltas while streaming and
+        # abort (reply cancel + stop forwarding audio) on low similarity.
+        text = sanitize_spoken_text(text)
         result = {
             "text": text, "first_audio_ms": None, "done_ms": None,
             "agent_transcript": "", "literal_spoken": False, "similarity": 0.0,

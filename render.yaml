@@ -23,3 +23,19 @@ services:
         value: gemini
       - key: CLAUSECATCHER_GEMINI_MODEL
         sync: false
+      # Abuse / spend guards (see docs/DEPLOY.md "Spend and abuse limits").
+      - key: CLAUSECATCHER_MAX_LIVE_WS
+        value: "2"
+      - key: CLAUSECATCHER_BUDGET_USD
+        value: "3"
+      - key: CLAUSECATCHER_PAID_DISABLED
+        value: "0"
+      - key: CLAUSECATCHER_SESSION_CAP_S
+        value: "420"
+      - key: CLAUSECATCHER_MAX_CHECKS
+        value: "40"
+      - key: CLAUSECATCHER_MAX_GEMINI_CALLS
+        value: "300"
+      # Set to https://<service>.onrender.com after the first deploy.
+      - key: CLAUSECATCHER_ALLOWED_ORIGINS
+        sync: false

@@ -7,7 +7,7 @@ Chromium at 1440x900, waited 3s for animation/hydration, screenshotted, then vie
 with the Read tool before scoring. All 20 pages returned HTTP 200 and were visually inspected —
 nothing below is scored from a page that failed to load.
 
-Screenshot root: `<home>\AppData\Local\Temp\claude\home\7e83953d-e53d-4431-9984-219a93002c39\scratchpad\design_scout\highend\`
+Screenshot root: local scratch folder `design_scout/highend/` (not committed).
 
 ---
 

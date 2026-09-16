@@ -11,7 +11,8 @@
 # ---------------------------------------------------------------------------
 # Stage 1: build the frontend
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS frontend-build
+# Pinned patch tags (bump deliberately; digests optional).
+FROM node:22.23.2-alpine3.24 AS frontend-build
 WORKDIR /app/frontend
 
 # Copy lockfile first so `npm ci` is cached across builds that only touch src.
@@ -24,7 +25,7 @@ RUN npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: runtime
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.12.14-slim-trixie AS runtime
 WORKDIR /app
 
 COPY requirements.txt ./
@@ -59,4 +60,9 @@ USER appuser
 ENV PORT=10000
 EXPOSE 10000
 
-CMD ["sh", "-c", "uvicorn server.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+# Liveness probe for plain Docker hosts (Render uses healthCheckPath instead).
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3   CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/api/health' % os.environ.get('PORT', '10000'), timeout=4)" || exit 1
+
+# sh -c so $PORT expands; exec so uvicorn is PID 1 and gets SIGTERM.
+# --forwarded-allow-ips='*' is safe only behind Render's proxy (no direct ingress).
+CMD ["sh", "-c", "exec uvicorn server.main:app --host 0.0.0.0 --port ${PORT:-10000} --proxy-headers --forwarded-allow-ips='*' --no-server-header --ws-max-size 65536 --timeout-keep-alive 5"]

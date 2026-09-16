@@ -101,8 +101,12 @@ function reducer(state: SessionState, action: Action): SessionState {
           return state // audio is handled imperatively (playback), not stored in state
         case 'error':
           return { ...state, error: msg.message }
-        case 'session_ended':
-          return { ...state, report: msg.report }
+        case 'session_ended': {
+          // server may end a session without a report (e.g. reason "busy",
+          // error "demo busy, try again shortly") -- surface the error, don't crash
+          const ended = msg as typeof msg & { reason?: string; error?: string }
+          return { ...state, report: ended.report ?? null, error: ended.error ?? state.error }
+        }
         default:
           return state
       }
@@ -213,6 +217,14 @@ export function useSession() {
 
   const start = useCallback(
     (sessionId: string) => {
+      // close any previous socket first: an orphan keeps paid upstreams open server-side
+      const prev = wsRef.current
+      if (prev) {
+        prev.onopen = prev.onmessage = prev.onerror = prev.onclose = null
+        prev.close()
+      }
+      stopMicCapture()
+      stopPlayback()
       dispatch({ kind: 'reset' })
       callActiveRef.current = true
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -237,6 +249,7 @@ export function useSession() {
         if (msg.type === 'agent_speaking') agentSpeakingRef.current = msg.state === 'start'
         if (msg.type === 'agent_audio') playAgentAudioChunk(msg.pcm16_b64, msg.sample_rate || 24000)
         dispatch({ kind: 'server', msg })
+        if (msg.type === 'session_ended') ws.close()
       }
 
       ws.onerror = () => dispatch({ kind: 'ws_error', message: 'Connection to ClauseCatcher server had an error.' })
@@ -245,7 +258,7 @@ export function useSession() {
         // no-op: reducer state already reflects status; UI reads `connected`
       }
     },
-    [startMicCapture, playAgentAudioChunk],
+    [startMicCapture, playAgentAudioChunk, stopMicCapture, stopPlayback],
   )
 
   const stop = useCallback(() => {
@@ -254,6 +267,9 @@ export function useSession() {
     send({ type: 'stop' })
     stopMicCapture()
     stopPlayback()
+    // onmessage closes on session_ended (report delivered); this backstop covers a server that never sends it
+    const ws = wsRef.current
+    if (ws) window.setTimeout(() => ws.close(), 2000)
   }, [send, stopMicCapture, stopPlayback])
 
   const sendSimulate = useCallback(

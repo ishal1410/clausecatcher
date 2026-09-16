@@ -28,6 +28,10 @@ spikes/claim_check/out/
 spikes/two_path/out/
 spikes/voice_agent/out/
 
+# Tests and test PDFs: not needed at runtime, keep hostile fixtures out of the image.
+server/tests/
+*.pdf
+
 # VCS / scratch
 .git/
 .gitattributes

@@ -2,7 +2,7 @@
 """Resample harness/audio/*.wav (16 kHz) to harness/audio_24k/*.wav (24 kHz).
 
 One-shot offline conversion for the Q2 24kHz probe (see README "Two-step Q2
-probe"). Uses the FFmpeg on PATH (<home>\\tools\\ffmpeg); no network,
+probe"). Uses the FFmpeg on PATH; no network,
 no dependency on make_audio.py's SAPI/PowerShell path -- this only resamples
 existing files, it doesn't synthesize new ones, so folding it into
 make_audio.py would just be an unrelated code path behind a flag.

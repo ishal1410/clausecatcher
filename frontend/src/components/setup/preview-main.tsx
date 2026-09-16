@@ -10,7 +10,7 @@ import '../../index.css'
 import Setup from './Setup'
 import type { Clause } from '../../lib/protocol'
 
-// Mirrors <home>\clausecatcher\spikes\harness\fake_contract.json
+// Mirrors spikes/harness/fake_contract.json
 const DEMO_CLAUSES: Clause[] = [
   {
     section_number: '3.1',

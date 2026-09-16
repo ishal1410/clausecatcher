@@ -181,7 +181,7 @@ class SessionFlowTest(unittest.TestCase):
             alert = ws.receive_json()
             self.assertEqual(alert["type"], "alert")
             self.assertEqual(alert["section_number"], "3.1")
-            clause = next(c for c in main.store.contract if c["section_number"] == "3.1")
+            clause = next(c for c in self.client.get("/api/contract").json()["clauses"] if c["section_number"] == "3.1")
             self.assertEqual(alert["literal_text"], clause["literal_text"])
             ws.send_json({"type": "stop"})
             ended = ws.receive_json()
@@ -217,7 +217,7 @@ class SessionFlowTest(unittest.TestCase):
             self.assertEqual(clause_msg["type"], "clause")
             ws.send_json({"type": "stop"})
             ws.receive_json()  # session_ended (also drains the speak task)
-        clause = next(c for c in main.store.contract if c["section_number"] == "4.2")
+        clause = next(c for c in self.client.get("/api/contract").json()["clauses"] if c["section_number"] == "4.2")
         self.assertIn(main.build_clause_answer_text(clause), voice_box.instances[0].said)
 
     def test_ask_unknown_section_error_no_speak(self) -> None:

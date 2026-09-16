@@ -122,7 +122,7 @@ class ClauseCatcherApiTest(unittest.TestCase):
             msg = ws.receive_json()
         self.assertEqual(msg["type"], "alert")
         self.assertEqual(msg["section_number"], "3.1")
-        expected_clause = next(c for c in main.store.contract if c["section_number"] == "3.1")
+        expected_clause = next(c for c in self.client.get("/api/contract").json()["clauses"] if c["section_number"] == "3.1")
         self.assertEqual(msg["literal_text"], expected_clause["literal_text"])
 
     def test_ws_unknown_clause_id_no_alert(self) -> None:

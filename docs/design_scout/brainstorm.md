@@ -1,7 +1,6 @@
 # ClauseCatcher — Visual Design Brainstorm
 
-Non-interactive brainstorm (superpowers:brainstorming, decisions made on the user's behalf per task instructions). Goal: 3 bold, award-caliber visual directions for the landing page + live-call cockpit, each backed by real 21st.dev components that were opened, screenshotted (Playwright, Chromium, 1440x900, ~3-5s settle), and visually judged. Every component listed below returned HTTP 200, had no "not found" body text, and its screenshot was viewed with the Read tool before inclusion. Screenshots live in:
-`<home>\AppData\Local\Temp\claude\home\7e83953d-e53d-4431-9984-219a93002c39\scratchpad\design_scout\brainstorm\`
+Non-interactive brainstorm (superpowers:brainstorming, decisions made on the user's behalf per task instructions). Goal: 3 bold, award-caliber visual directions for the landing page + live-call cockpit, each backed by real 21st.dev components that were opened, screenshotted (Playwright, Chromium, 1440x900, ~3-5s settle), and visually judged. Every component listed below returned HTTP 200, had no "not found" body text, and its screenshot was viewed with the Read tool before inclusion. Screenshots were saved to a local scratch folder (`design_scout/brainstorm/`, not committed).
 
 Rejected candidates (opened, viewed, judged generic/off-tone) are noted inline so the trail is honest — components were not cherry-picked after the fact.
 

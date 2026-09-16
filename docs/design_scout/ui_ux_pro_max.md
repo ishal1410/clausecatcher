@@ -3,7 +3,7 @@
 Scope note: context budget ran out mid-scout. Verified picks below come only from pages actually opened and screenshots actually viewed: **21st.dev** (`/s/voice`, `/s/notification`, `/s/progress`, `/s/dashboard`) and **Magic UI** (`/docs/components/animated-beam`). Aceternity UI, React Bits, and Kokonut UI were queued (Aceternity's `/components` index was screenshotted to disk but not viewed/scored) and not covered — say so rather than fabricate picks from them.
 
 All screenshots: Playwright headless Chromium, 1440x900, ~3s settle, saved under
-`<home>\AppData\Local\Temp\claude\home\7e83953d-e53d-4431-9984-219a93002c39\scratchpad\design_scout\uupm\`.
+a local scratch folder `design_scout/uupm/` (not committed).
 
 ## Design system baseline (ui-ux-pro-max --design-system)
 

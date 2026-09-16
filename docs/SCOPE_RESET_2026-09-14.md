@@ -1,7 +1,7 @@
 # ClauseCatcher Scope Reset — 2026-09-14, ~6PM
 
 Deadline: Sep 30 2026 11:00 AM EDT. **16 days left.** Verified by directory
-listing: `<home>\clausecatcher\` contains only `docs/` and `spikes/`.
+listing: the repo root (`clausecatcher/`) contains only `docs/` and `spikes/`.
 No `app/`, `backend/`, `frontend/`, no git repo (`git status` → "not a git
 repository"). Zero product code exists. Confirmed, not assumed.
 

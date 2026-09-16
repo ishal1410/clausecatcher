@@ -50,6 +50,9 @@
      `render.yaml`. (If you ever want to run the server with the claim
      checker stubbed out and no Gemini calls, delete that var or change
      its value to anything else.)
+   - `CLAUSECATCHER_ALLOWED_ORIGINS` — also left blank by `render.yaml`.
+     After the first deploy, set it to the service URL from step 8, e.g.
+     `https://clausecatcher.onrender.com` (no trailing slash).
 7. Click **Save Changes** — Render redeploys automatically with the new
    env vars.
 8. Your hosted app URL is shown at the top of the service page, e.g.
@@ -81,6 +84,29 @@ Push to the branch Render is watching (default: your repo's default
 branch) — Render rebuilds and redeploys automatically. To redeploy the
 current commit without a code change (e.g. after only touching an env
 var), use **Manual Deploy** → **Deploy latest commit** on the service page.
+
+## Spend and abuse limits
+
+The app is public, so paid API use is capped by env vars. `render.yaml`
+sets these defaults; change them in the **Environment** tab.
+
+| Variable | Default | What it does |
+|---|---|---|
+| `CLAUSECATCHER_MAX_LIVE_WS` | `2` | Max concurrent live call WebSockets; extra callers get "demo busy, try again shortly". |
+| `CLAUSECATCHER_BUDGET_USD` | `3` | Estimated paid-API spend cap for the running process. |
+| `CLAUSECATCHER_PAID_DISABLED` | `0` | **Kill switch.** Set to `1` to stop all paid API use (AssemblyAI + Gemini) immediately after the redeploy. |
+| `CLAUSECATCHER_SESSION_CAP_S` | `420` | Max length of one live call, in seconds. |
+| `CLAUSECATCHER_IDLE_TIMEOUT_S` | `60` | End a live call after this many seconds with no client messages. |
+| `CLAUSECATCHER_MAX_CHECKS` | `40` | Max claim checks per session. |
+| `CLAUSECATCHER_MAX_GEMINI_CALLS` | `300` | Max Gemini calls for the running process. |
+| `CLAUSECATCHER_ALLOWED_ORIGINS` | *(unset)* | Allowed browser origin(s); set to your `https://<service>.onrender.com` URL. |
+
+If you see unexpected usage on the AssemblyAI or Gemini dashboards, set
+`CLAUSECATCHER_PAID_DISABLED=1`, save, and rotate the keys.
+
+Uploaded PDFs are parsed in a separate, memory-capped worker process with
+a 10 s timeout and a 50-page limit, so a hostile PDF can't hang or OOM the
+512 MB instance.
 
 ## Secrets
 
