@@ -28,3 +28,8 @@ spikes/harness/audio/_tmp/
 .vscode/
 .idea/
 *.swp
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.shoot-*.mjs

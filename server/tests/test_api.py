@@ -53,6 +53,16 @@ class ClauseCatcherApiTest(unittest.TestCase):
         self.assertEqual(msg["voice"], "disabled")
         return msg
 
+    # -- static frontend --------------------------------------------------
+    def test_root_serves_index_html(self) -> None:
+        """frontend/dist (built by npm run build) takes precedence over
+        web/ when present; either way "/" must serve an HTML page."""
+        resp = self.client.get("/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn("text/html", resp.headers["content-type"])
+        if main.FRONTEND_DIST_DIR.exists():
+            self.assertIn("<div id=\"root\">", resp.text)
+
     # -- basic routes ---------------------------------------------------
     def test_health(self) -> None:
         resp = self.client.get("/api/health")

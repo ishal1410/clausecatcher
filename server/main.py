@@ -31,6 +31,7 @@ from fastapi import Depends, FastAPI, HTTPException, UploadFile, WebSocket, WebS
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from server.session_store import SessionStore
 from server.claim_check import get_call_stats
@@ -40,6 +41,7 @@ logger = logging.getLogger("clausecatcher")
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT_DIR / "web"
+FRONTEND_DIST_DIR = ROOT_DIR / "frontend" / "dist"
 DEMO_CONTRACT_JSON = ROOT_DIR / "spikes" / "harness" / "fake_contract.json"
 
 MAX_PDF_BYTES = int(os.environ.get("CLAUSECATCHER_MAX_PDF_BYTES", 5 * 1024 * 1024))
@@ -439,5 +441,28 @@ async def unhandled_exception_handler(request, exc: Exception) -> JSONResponse: 
     return JSONResponse(status_code=500, content={"detail": "internal error"})
 
 
-if WEB_DIR.exists():
+class SPAStaticFiles(StaticFiles):
+    """StaticFiles that falls back to index.html for any unmatched path that
+    isn't under /api or /ws, so a client-side router (none yet, but the next
+    round may add one) gets index.html instead of a 404. Real /api and /ws
+    routes are registered as explicit routes above and are matched before
+    this mount ever sees the request; a genuinely unknown /api/... path
+    still 404s instead of silently returning HTML.
+    """
+
+    async def get_response(self, path: str, scope):  # noqa: ANN001 - Starlette's own signature
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code == 404 and not path.startswith("api") and not path.startswith("ws"):
+                return await super().get_response("index.html", scope)
+            raise
+
+
+# Serve the built frontend (frontend/dist) when present; otherwise fall back
+# to the no-build-step web/ UI. Both are mounted at "/" with SPA fallback so
+# either one keeps working standalone.
+if FRONTEND_DIST_DIR.exists():
+    app.mount("/", SPAStaticFiles(directory=str(FRONTEND_DIST_DIR), html=True), name="frontend")
+elif WEB_DIR.exists():
     app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="web")

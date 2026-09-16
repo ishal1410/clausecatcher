@@ -1,0 +1,187 @@
+/**
+ * cockpit.css — keyframes + material classes for the cockpit only. Imported
+ * by Cockpit.tsx so it never touches the shared src/index.css. All colors
+ * come from the shared :root tokens (var(--risk-high) etc.); `cc-` prefix
+ * keeps class names collision-free.
+ *
+ * Liquid-glass material lives ONLY on the top bar and right rail (chrome).
+ * Transcript, alert cards and the clause watchlist stay opaque, evidence-first.
+ */
+
+.cc-glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(248, 250, 252, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(248, 250, 252, 0.06),
+    0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .cc-glass {
+    background: var(--surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Alert focus mode ("color-pop on monochrome"): while an alert is live, the
+   supporting UI recedes so the red card + underlined phrase carry the frame. */
+.cc-recede {
+  transition:
+    opacity 400ms var(--ease-out-expo),
+    filter 400ms var(--ease-out-expo);
+}
+[data-alert-live="true"] .cc-recede {
+  opacity: 0.38;
+  filter: saturate(0.3);
+}
+
+/* Severity ring on the newest alert: strong for ~1.2s, then settles
+   (UI_SCREENS_SPEC §4a t=0.6s). */
+.cc-alert-settled {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--risk-high) 22%, transparent),
+    0 12px 32px -16px rgba(0, 0, 0, 0.6);
+}
+.cc-anim-alert-ring {
+  animation: cc-alert-ring 1.6s var(--ease-out-expo) both;
+}
+@keyframes cc-alert-ring {
+  0%,
+  45% {
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--risk-high) 70%, transparent),
+      0 0 48px color-mix(in oklab, var(--risk-high) 45%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--risk-high) 22%, transparent),
+      0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Voice orb ring. Three layers per bar so the transforms never fight:
+   outer span = rotate+translate onto the ring, .cc-orb-bar = live-amplitude
+   scale (from --cc-level, set imperatively), inner = idle wobble. */
+.cc-orb {
+  --cc-level: 0;
+  scale: calc(1 + var(--cc-level) * var(--cc-pulse, 0));
+  transition: scale 90ms linear;
+}
+.cc-orb-bar {
+  position: absolute;
+  left: -1px;
+  bottom: 0;
+  width: 2px;
+  height: 14px;
+  transform-origin: bottom;
+  transform: scaleY(calc(var(--cc-base) + var(--cc-level) * var(--cc-gain) * var(--cc-k)));
+  transition: transform 90ms linear;
+}
+
+@keyframes cc-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+@keyframes cc-bar-wobble {
+  0%,
+  100% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes cc-sweep {
+  from {
+    background-size: 0% 2px;
+  }
+  to {
+    background-size: 100% 2px;
+  }
+}
+@keyframes cc-ellipsis {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes cc-live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes cc-eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.cc-anim-breathe {
+  animation: cc-breathe 4s ease-in-out infinite;
+}
+.cc-anim-wobble {
+  transform-origin: bottom;
+  animation: cc-bar-wobble 1.6s ease-in-out infinite;
+}
+.cc-anim-sweep {
+  background-size: 0% 2px;
+  animation: cc-sweep 300ms var(--ease-out-expo) forwards;
+}
+.cc-anim-ellipsis {
+  animation: cc-ellipsis 1.4s ease-in-out infinite;
+}
+.cc-anim-livepulse {
+  animation: cc-live-pulse 2s ease-in-out infinite;
+}
+.cc-anim-eq {
+  transform-origin: bottom;
+  animation: cc-eq 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-anim-breathe,
+  .cc-anim-wobble,
+  .cc-anim-sweep,
+  .cc-anim-ellipsis,
+  .cc-anim-livepulse,
+  .cc-anim-eq,
+  .cc-anim-alert-ring {
+    animation: none !important;
+  }
+  .cc-anim-sweep {
+    background-size: 100% 2px;
+  }
+  .cc-orb {
+    scale: 1;
+  }
+}
+
+/* Big screens (1080p recording): scale the whole cockpit instead of
+   stretching it, so a 1920x1080 capture frames exactly like the 1280x720
+   composition (DESIGN_SYSTEM §4: "nothing new is added, just breathing
+   room"). Breakpoints are not used for this because media queries see the
+   real viewport, not the zoomed one. */
+@media (min-width: 1760px) and (min-height: 990px) {
+  .cc-cockpit {
+    zoom: 1.5; /* percentage heights (h-full) are not re-multiplied by zoom */
+  }
+}
