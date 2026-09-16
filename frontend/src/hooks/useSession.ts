@@ -129,7 +129,9 @@ export function useSession() {
   const agentLevelRef = useRef(0)
 
   const [levels, setLevels] = useReducer(
-    (_prev: { mic: number; agent: number }, next: { mic: number; agent: number }) => next,
+    // ponytail: returning prev on sub-1% change skips the re-render; throttle to ~20 Hz if still hot
+    (prev: { mic: number; agent: number }, next: { mic: number; agent: number }) =>
+      Math.abs(prev.mic - next.mic) < 0.01 && Math.abs(prev.agent - next.agent) < 0.01 ? prev : next,
     { mic: 0, agent: 0 },
   )
 

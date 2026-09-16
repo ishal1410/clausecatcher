@@ -1,7 +1,10 @@
-import { memo, useLayoutEffect, useRef, type CSSProperties } from 'react'
+import { createContext, memo, use, useLayoutEffect, useRef, type CSSProperties } from 'react'
 import { useReducedMotion } from 'motion/react'
 import { AudioLines } from 'lucide-react'
 import { cn } from '../../lib/cn'
+
+/** Current audio level (0-1), provided by Cockpit's shell at audio-chunk rate. */
+export const LevelContext = createContext(0)
 
 const BAR_COUNT = 32
 const RADIUS = 62
@@ -38,10 +41,11 @@ const Ring = memo(function Ring({ animate }: { animate: boolean }) {
   )
 })
 
-/** Kokonut AI Voice / Siri Wave style bar ring (see THIRD_PARTY.md). The only
- * cockpit component that reads the audio-rate `level`; it writes it into a
- * CSS variable imperatively so React never diffs the bars per chunk. */
-export function VoiceOrb({ level, speaking, listening, connected }: { level: number; speaking: boolean; listening: boolean; connected: boolean }) {
+/** Kokonut AI Voice style bar ring (see THIRD_PARTY.md). The only cockpit
+ * component that reads the audio-rate level (LevelContext); it writes it into
+ * a CSS variable imperatively so React never diffs the bars per chunk. */
+export function VoiceOrb({ speaking, listening, connected }: { speaking: boolean; listening: boolean; connected: boolean }) {
+  const level = use(LevelContext)
   const reducedMotion = useReducedMotion()
   const discRef = useRef<HTMLDivElement>(null)
   const mode: Mode = speaking ? 'speaking' : listening ? 'listening' : 'idle'

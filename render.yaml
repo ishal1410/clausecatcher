@@ -1,0 +1,25 @@
+# Render Blueprint for ClauseCatcher (free Docker web service).
+# https://render.com/docs/blueprint-spec
+#
+# Secrets are NOT set here — Render env vars marked `sync: false` are left
+# blank by the blueprint and must be pasted into the Render dashboard by
+# whoever deploys (see docs/DEPLOY.md). Nothing secret lives in this file
+# or anywhere in git.
+
+services:
+  - type: web
+    name: clausecatcher
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: ASSEMBLYAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLAUSECATCHER_CLAIM_CHECK
+        value: gemini
+      - key: CLAUSECATCHER_GEMINI_MODEL
+        sync: false

@@ -107,17 +107,17 @@ export const AlertCard = memo(function AlertCard({ alert, isNewest, voice }: { a
             Contradiction
           </span>
           <span className="shrink-0 font-mono text-[13px] font-medium tabular-nums text-text-primary">§{alert.section_number}</span>
-          <h3 className="truncate font-display text-[17px] font-semibold tracking-tight text-text-primary">{alert.title}</h3>
+          <h3 className="truncate font-display text-[18px] font-semibold tracking-tight text-text-primary">{alert.title}</h3>
         </div>
         <time className="shrink-0 font-mono text-[12px] tabular-nums text-text-muted">{formatTimestamp(alert.t)}</time>
       </header>
 
-      <div className="relative grid gap-4 px-5 py-4">
+      <div className={cn('relative grid px-5', isNewest ? 'gap-5 py-5' : 'gap-3 py-4')}>
         <div>
           <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted">
             <MessageSquareQuote size={12} strokeWidth={1.75} /> Rep said
           </p>
-          <p className="text-[15px] leading-relaxed text-text-secondary">
+          <p className={cn('leading-relaxed text-text-secondary', isNewest ? 'text-[17px]' : 'text-[14px]')}>
             &ldquo;
             <span className="text-risk-high-text underline decoration-risk-high decoration-2 underline-offset-4">{alert.sentence}</span>
             &rdquo;
@@ -128,8 +128,18 @@ export const AlertCard = memo(function AlertCard({ alert, isNewest, voice }: { a
           <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted">
             <FileText size={12} strokeWidth={1.75} /> Signed contract §{alert.section_number} says
           </p>
-          <blockquote className="rounded-md border border-border/70 border-l-2 border-l-text-primary/70 bg-bg-sunken px-4 py-3 font-mono text-[15px] leading-relaxed text-text-primary">
+          <blockquote
+            className={cn(
+              'relative overflow-hidden rounded-md border border-l-2 bg-bg-sunken px-4 font-mono leading-relaxed text-text-primary transition-[border-color,box-shadow] duration-300',
+              isNewest ? 'py-4 text-[18px]' : 'py-3 text-[14px]',
+              voice === 'speaking'
+                ? 'border-voice-active/40 border-l-voice-active shadow-[0_0_0_1px_color-mix(in_oklab,var(--voice-active)_20%,transparent),0_0_28px_-6px_color-mix(in_oklab,var(--voice-active)_45%,transparent)]'
+                : 'border-border/70 border-l-text-primary/70',
+            )}
+          >
             &ldquo;{alert.literal_text}&rdquo;
+            {/* indeterminate "being spoken" scan: no fake word timing, just liveness */}
+            {voice === 'speaking' && <span className="cc-anim-scan pointer-events-none absolute inset-y-0 left-0 w-1/3" aria-hidden />}
           </blockquote>
         </div>
       </div>

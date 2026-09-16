@@ -11,11 +11,13 @@ export const AlertStack = memo(function AlertStack({
   agentSpeaking,
   voiceReady,
   confirmedKeys,
+  clauseCount,
 }: {
   alerts: AlertRecord[]
   agentSpeaking: boolean
   voiceReady: boolean
   confirmedKeys: ReadonlySet<string>
+  clauseCount: number
 }) {
   const reducedMotion = useReducedMotion()
   const newest = alerts[0]
@@ -56,11 +58,22 @@ export const AlertStack = memo(function AlertStack({
           <motion.div
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex h-full min-h-32 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-safe/25 bg-safe/[0.04] px-6 text-center"
+            className="flex h-full min-h-32 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-safe/25 bg-safe/[0.04] px-6 text-center"
           >
-            <ShieldCheck size={24} strokeWidth={1.5} className="text-safe" />
-            <p className="font-display text-[15px] font-semibold text-text-primary">No contradictions yet</p>
-            <p className="text-[13px] text-text-muted">Every finalized sentence is checked against the signed contract.</p>
+            {/* "armed" radar: two rings expanding off the shield, CSS-only */}
+            <span className="relative flex h-14 w-14 items-center justify-center" aria-hidden>
+              <span className="cc-anim-radar absolute inset-0 rounded-full border border-safe/40" />
+              <span className="cc-anim-radar absolute inset-0 rounded-full border border-safe/40" style={{ animationDelay: '1.4s' }} />
+              <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-safe/12 text-safe">
+                <ShieldCheck size={22} strokeWidth={1.75} />
+              </span>
+            </span>
+            <p className="font-display text-[17px] font-semibold text-text-primary">
+              {clauseCount > 0 ? `Guarding ${clauseCount} signed clause${clauseCount === 1 ? '' : 's'}` : 'No contradictions yet'}
+            </p>
+            <p className="max-w-sm text-[13px] leading-relaxed text-text-muted">
+              Every finalized sentence is checked against the contract. A contradiction lands here with the literal clause, read aloud.
+            </p>
           </motion.div>
         ) : (
           <div className="space-y-3">

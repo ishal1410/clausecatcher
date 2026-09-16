@@ -17,7 +17,7 @@ function Line({ line, matchedAlert, isNewest }: { line: TranscriptLine; matchedA
       {line.text.slice(0, idx)}
       <mark
         key={isNewest ? matchedAlert.t : 'settled'}
-        className={cn('rounded-[2px] bg-transparent px-0.5 text-risk-high-text', isNewest && 'cc-anim-sweep')}
+        className={cn('rounded-[2px] bg-transparent text-risk-high-text', isNewest && 'cc-anim-sweep')}
         style={{
           backgroundImage: 'linear-gradient(var(--risk-high), var(--risk-high))',
           backgroundRepeat: 'no-repeat',

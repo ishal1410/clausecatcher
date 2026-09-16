@@ -181,8 +181,8 @@ function Hero({ onStart }: { onStart: () => void }) {
           </h1>
 
           <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-pretty text-text-secondary">
-            ClauseCatcher listens to live sales calls and speaks the exact contract clause the moment a rep
-            contradicts it.
+            ClauseCatcher listens to live sales calls, catches any line that contradicts the signed contract,
+            and reads the exact clause aloud while the customer is still on the line.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -287,7 +287,7 @@ function ContractField() {
     <div
       ref={fieldRef}
       aria-hidden="true"
-      className="pointer-events-none absolute inset-y-0 left-[45%] right-0 hidden select-none overflow-hidden [mask-image:radial-gradient(ellipse_75%_80%_at_55%_45%,#000_20%,transparent_80%)] lg:block"
+      className="pointer-events-none absolute inset-y-0 left-[calc(50%+3rem)] right-0 hidden select-none overflow-hidden [mask-image:radial-gradient(ellipse_70%_75%_at_60%_45%,#000_25%,transparent_78%)] lg:block"
     >
       <ContractText lit={false} />
       {!reduceMotion && (
@@ -315,7 +315,7 @@ function ContractField() {
 const REP_LINE = 'We can also do a verbal discount for a big client.'
 const HIGHLIGHT_PHRASE = 'verbal discount'
 const CLAUSE_WORDS = PRICING.text.split(' ')
-const TYPE_MS = 38
+const TYPE_MS = 26
 const WORD_S = 0.15
 
 type PreviewStep = 'typing' | 'highlight' | 'alert' | 'speaking' | 'verified' | 'exit'
@@ -344,12 +344,12 @@ function CockpitPreview() {
     }, TYPE_MS)
 
     const at = (ms: number, fn: () => void) => timers.push(window.setTimeout(fn, ms))
-    at(typeMs + 200, () => setStep('highlight'))
-    at(typeMs + 600, () => setStep('alert'))
-    at(typeMs + 1300, () => setStep('speaking'))
-    at(typeMs + 1300 + speakMs, () => setStep('verified'))
-    at(typeMs + 1300 + speakMs + 2600, () => setStep('exit'))
-    at(typeMs + 1300 + speakMs + 3200, () => setCycle((c) => c + 1))
+    at(typeMs + 150, () => setStep('highlight'))
+    at(typeMs + 450, () => setStep('alert'))
+    at(typeMs + 1050, () => setStep('speaking'))
+    at(typeMs + 1050 + speakMs, () => setStep('verified'))
+    at(typeMs + 1050 + speakMs + 2600, () => setStep('exit'))
+    at(typeMs + 1050 + speakMs + 3200, () => setCycle((c) => c + 1))
 
     return () => {
       window.clearInterval(typeInterval)
@@ -658,8 +658,36 @@ function HowItWorks() {
             })}
           </ol>
         </div>
+
+        <MeasuredFacts />
       </div>
     </section>
+  )
+}
+
+/* Measured on our own demo calls (see docs); no projected or customer numbers. */
+const FACTS = [
+  { value: '~2 s', label: 'from the end of the rep’s sentence to the alert card on screen' },
+  { value: '1.0', label: 'text similarity between the spoken alert and the signed clause' },
+  { value: '~$0.12', label: 'of API usage for one full demo call' },
+]
+
+function MeasuredFacts() {
+  return (
+    <div className="mt-20 border-t border-border/70 pt-10 md:mt-24">
+      <h3 className="text-[15px] font-medium text-text-secondary">Measured on our demo calls</h3>
+      <dl className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-3 sm:gap-8">
+        {FACTS.map((f) => (
+          // visual order value-then-label; DOM order label-then-value so it reads as a sentence
+          <div key={f.value} className="flex flex-col-reverse">
+            <dt className="mt-2 max-w-[18rem] text-[15px] leading-relaxed text-text-muted">{f.label}</dt>
+            <dd className="font-display text-[28px] font-bold leading-[1.2] tracking-[-0.02em] tabular-nums text-text-primary md:text-[40px] md:leading-[1.15]">
+              {f.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   )
 }
 

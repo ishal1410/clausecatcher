@@ -1,0 +1,39 @@
+# Node / frontend build artifacts (frontend/dist is rebuilt from source in
+# the Docker build's frontend-build stage, never copied from the host).
+frontend/node_modules/
+frontend/dist/
+**/node_modules/
+
+# Python
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+**/.ruff_cache/
+.venv/
+venv/
+
+# Secrets — never send these into the build context.
+.env
+.env.*
+!.env.example
+
+# Spikes: large audio fixtures, not needed at runtime.
+# spikes/harness/fake_contract.json IS needed (server/clauses.py reads it
+# for the demo-contract endpoint) and is copied explicitly in the Dockerfile,
+# so it is NOT excluded here.
+spikes/harness/audio/
+spikes/harness/audio_24k/
+spikes/claim_check/out/
+spikes/two_path/out/
+spikes/voice_agent/out/
+
+# VCS / scratch
+.git/
+.gitattributes
+*.log
+**/out/
+
+# IDE
+.vscode/
+.idea/
