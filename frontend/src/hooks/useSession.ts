@@ -26,7 +26,7 @@ export interface AlertRecord {
   t: string
 }
 
-interface SessionState {
+export interface SessionState {
   connected: boolean
   status: { stt: string; voice: string } | null
   transcript: TranscriptLine[]
@@ -37,7 +37,7 @@ interface SessionState {
   error: string | null
 }
 
-const initialState: SessionState = {
+export const initialState: SessionState = {
   connected: false,
   status: null,
   transcript: [],
@@ -55,7 +55,7 @@ type Action =
   | { kind: 'local_transcript'; text: string }
   | { kind: 'ws_error'; message: string }
 
-function reducer(state: SessionState, action: Action): SessionState {
+export function reducer(state: SessionState, action: Action): SessionState {
   switch (action.kind) {
     case 'reset':
       return initialState
@@ -74,8 +74,8 @@ function reducer(state: SessionState, action: Action): SessionState {
           const final = !!msg.final
           const lines = state.transcript
           const last = lines[lines.length - 1]
-          if (!final && last && !last.final) {
-            return { ...state, transcript: [...lines.slice(0, -1), { text: msg.text, final: false }] }
+          if (last && !last.final) { // a final replaces its own partial line
+            return { ...state, transcript: [...lines.slice(0, -1), { text: msg.text, final }] }
           }
           return { ...state, transcript: [...lines, { text: msg.text, final }] }
         }

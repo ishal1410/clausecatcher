@@ -178,6 +178,7 @@ class SessionFlowTest(unittest.TestCase):
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
             ws.receive_json()  # status
             ws.send_bytes(b"TURN:we'll knock ten percent off right now")
+            self.assertEqual(ws.receive_json(), {"type": "transcript", "text": "we'll knock ten percent off right now", "final": True})
             alert = ws.receive_json()
             self.assertEqual(alert["type"], "alert")
             self.assertEqual(alert["section_number"], "3.1")
@@ -198,10 +199,12 @@ class SessionFlowTest(unittest.TestCase):
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
             ws.receive_json()  # status
             ws.send_bytes(b"TURN:we'll knock ten percent off right now")
+            ws.receive_json()  # transcript
             first = ws.receive_json()
             self.assertEqual(first["type"], "alert")
             # same clause again, well inside the 20s dedupe window -> suppressed
             ws.send_bytes(b"TURN:we will still knock ten percent off")
+            self.assertEqual(ws.receive_json()["type"], "transcript")
             # prove it: the very next message is the ask reply, not a 2nd alert
             ws.send_json({"type": "ask", "section_number": "4.2"})
             second = ws.receive_json()
@@ -255,6 +258,7 @@ class SessionFlowTest(unittest.TestCase):
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
             ws.receive_json()  # status
             ws.send_bytes(b"TURN:we'll knock ten percent off right now")
+            self.assertEqual(ws.receive_json(), {"type": "transcript", "text": "we'll knock ten percent off right now", "final": True})
             alert = ws.receive_json()
             self.assertEqual(alert["type"], "alert")
             voice_box.instances[0].raise_on_speak = True

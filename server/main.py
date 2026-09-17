@@ -453,6 +453,9 @@ async def session_ws(
             speak_tasks.append(asyncio.create_task(_speak_answer(clause)))
 
     async def on_turn(text: str, end_of_turn: bool) -> None:
+        # live mic path: show partials + finals in the transcript pane (the
+        # simulate seam renders its own line client-side, so it never comes here)
+        await send({"type": "transcript", "text": text, "final": end_of_turn})
         if end_of_turn:
             await handle_turn(text)
 
