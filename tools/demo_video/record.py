@@ -31,7 +31,9 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(HERE))
 
-from dryrun_server import agent_wav_name  # noqa: E402
+# NB: dryrun_server scrubs the paid keys out of os.environ at import time, so it is
+# imported lazily inside the dry-run branch only -- a module-level import here would
+# leave --server live with no ASSEMBLYAI_API_KEY/GEMINI_API_KEY.
 from server.clauses import load_demo_contract  # noqa: E402
 from server.voice import build_alert_text, build_clause_answer_text  # noqa: E402
 
@@ -40,8 +42,9 @@ REP_VOICE = "en-US-GuyNeural"
 AGENT_STANDIN_VOICE = "en-US-EmmaNeural"  # dry run only; live uses the real Voice Agent audio
 TITLE_S = 3.0
 END_PAD_S = 2.5
-LATENCY_S = 3.5  # planning margin: STT final + claim check + voice start (live)
-GAP_AFTER_AGENT_S = 3.0  # extra slack before the next mic line (mic is gated while the agent talks)
+LATENCY_S = 4.5  # planning margin: STT final + claim check + voice start (live; dry runs need ~1)
+GAP_AFTER_AGENT_S = 5.0  # extra slack before the next mic line (mic is gated while the agent talks,
+# and the live Voice Agent reads the clause slower than the edge-tts stand-in the plan is sized from)
 
 REP_LINES = [
     "Thanks for making time today. Your fifty seats stay at the flat forty-eight thousand dollar rate.",
@@ -283,6 +286,8 @@ def record(args, out: Path, narr_wavs: list[Path | None], rep_wavs: list[Path]) 
         """)
         video_epoch0 = time.time()
         page = ctx.new_page()
+        page.on("pageerror", lambda e: log("PAGEERROR:", str(e)[:300]))
+        page.on("console", lambda m: log("console", m.type + ":", m.text[:200]) if m.type in ("error", "warning") else None)
         page.on("websocket", lambda ws: ws.on("framereceived", on_frame) if "/ws/session/" in ws.url else None)
 
         def hold(s: float) -> None:
@@ -416,7 +421,7 @@ def record(args, out: Path, narr_wavs: list[Path | None], rep_wavs: list[Path]) 
         if len(alerts()) >= 2:
             marks["alert2"] = alerts()[1]["t"]
             wait_for(lambda: agent_done(2), 40, "agent read-back 2")
-        hold(1.5)
+        hold(4.5)  # narration 11 is queued behind the whole read-back; don't open the ask on top of it
 
         # ask §4.2. Two stacked alerts make the page taller than 1080, so keep
         # the top bar + orb in frame, then pan down to the watchlist afterwards.
@@ -631,6 +636,8 @@ def main() -> None:
 
     env_extra = {}
     if args.server == "dryrun":
+        from dryrun_server import agent_wav_name  # scrubs paid keys from this process; dry run only
+
         contract = {c["section_number"]: c for c in load_demo_contract()}
         agent_dir = out / "dryrun_agent"
         agent_dir.mkdir(exist_ok=True)

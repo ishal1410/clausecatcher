@@ -38,7 +38,7 @@
 
 **On slide:** (no bullets, full-screen video or live app)
 
-**Speaker notes:** Play roughly 1:00-1:35 of the demo video here: the rep offers an unauthorized discount, ClauseCatcher flags §3.1 within about two seconds, and the AssemblyAI Voice Agent speaks the clause back word for word. Let the audio play without talking over it.
+**Speaker notes:** Play roughly 1:00-1:35 of the demo video here: the rep offers an unauthorized discount, ClauseCatcher flags §3.1 within about five seconds, and the AssemblyAI Voice Agent speaks the clause back word for word. Let the audio play without talking over it.
 
 ---
 
@@ -83,7 +83,7 @@
 - Two false claims caught (§3.1, §6.1); consistent lines raised nothing
 - Alerts ~2 seconds after the sentence; spoken match verified word for word
 - First voice audio ~78 ms after the speak request
-- ~$0.12 of API usage for the full call; 81 backend tests passing
+- $0.08 to $0.15 of API usage per call; 136 backend tests passing
 
 **Speaker notes:** These are the actual numbers from one end-to-end run, not projections. The browser-microphone path and a hosted deployment are still being finished; we're not claiming those yet.
 

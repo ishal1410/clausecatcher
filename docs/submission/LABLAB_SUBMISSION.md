@@ -20,7 +20,7 @@ ClauseCatcher
 ### Short description (limit: 255 characters)
 
 ```
-A voice agent for live sales calls. When a rep promises something the signed contract doesn't allow, it reads the exact clause back out loud within about 2 seconds. It quotes the contract word for word and never makes up legal wording.
+A voice agent for live sales calls. When a rep promises something the signed contract doesn't allow, it reads the exact clause back out loud seconds later. It quotes the contract word for word and never makes up legal wording.
 ```
 
 (235 characters.)
@@ -29,7 +29,7 @@ A voice agent for live sales calls. When a rep promises something the signed con
 
 ```
 IN ONE LINE
-When a sales rep promises something the contract doesn't allow, ClauseCatcher reads the rep the actual clause out loud, word for word, about 2 seconds later.
+When a sales rep promises something the contract doesn't allow, ClauseCatcher reads the rep the actual clause out loud, word for word, seconds later, while the customer is still on the line.
 
 THE PROBLEM
 Sales reps improvise on live calls. One sentence ("we can do a verbal discount on the extra seats") can promise something the signed contract forbids. Nobody catches it while the call is happening, so it turns up weeks later as a customer dispute instead of a one-sentence correction. Today, compliance and sales-ops teams catch this, if they catch it at all, by spot-checking recordings after the fact.
@@ -53,16 +53,18 @@ It opens two AssemblyAI connections, and each has one job. Streaming STT v3 tran
 MEASURED, NOT PROJECTED
 One live end-to-end run on 2026-09-15, with real AssemblyAI and Gemini connections and scripted rep lines fed into the pipeline:
 - Two false claims caught: a fake automatic discount (contract §3.1) and a fake 24/7 support promise (§6.1). Consistent lines raised no alerts.
-- Alert about 2 s after the sentence ended. Spoken clause matched the contract text exactly (similarity 1.0). First voice audio about 78 ms after the speak request.
+- Alert 4 to 6 seconds after the sentence ended (4.6 s, 5.6 s and 4.0 s on separate live alerts). Spoken clause matched the contract text exactly (similarity 1.0). Alert to first voice audio: 375 ms.
 - A spoken question about clause §4.2 was answered correctly.
-- About $0.12 of API usage for the whole call.
+- About $0.08 to $0.15 of API usage per call by the server's own meter ($0.0755 for 55 s, $0.1535 for 1:52).
 - 136 backend tests pass (pytest server/).
-Not yet verified end to end: the live browser-microphone path, and the hosted deployment. We don't claim results for either.
+The live browser-microphone path is verified: an automated run on 2026-09-17 drove a real browser mic through the full pipeline and passed 17 of 17 checks. Every figure here comes from a single run, not an average.
+
+Not yet verified: the hosted deployment. We don't claim results for it.
 
 WHO IT'S FOR
 Sales-ops and revenue-compliance teams at B2B companies whose reps quote pricing, renewal, data-retention or SLA terms on live calls. The first buyer is whoever owns contract risk today and learns about a bad promise only after the customer brings it up.
 
-Most call-review tools analyze recordings after the call ends. ClauseCatcher differs in two ways: it acts during the call, and it checks the rep against this customer's signed contract, not a generic sales script. Business-model hypothesis (not yet validated with buyers): a per-rep monthly subscription sold to sales-ops. API cost is small next to that; the measured demo call used about $0.12.
+Most call-review tools analyze recordings after the call ends. ClauseCatcher differs in two ways: it acts during the call, and it checks the rep against this customer's signed contract, not a generic sales script. Business-model hypothesis (not yet validated with buyers): a per-rep monthly subscription sold to sales-ops. API cost is small next to that; measured demo calls used $0.08 to $0.15 each.
 
 WHAT'S NEXT
 A hardened browser-mic path, CRM and meeting-platform integration (for example Zoom or Google Meet audio), multi-contract accounts, and a per-seat pricing pilot with a sales team.

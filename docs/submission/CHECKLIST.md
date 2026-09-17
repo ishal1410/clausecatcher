@@ -39,3 +39,70 @@ Form text for every field: `docs/submission/LABLAB_SUBMISSION.md`.
 5. Skim the slide PDF once before uploading (#9): 5 min
 6. Fill in the form and submit (#3-7, #11, #15): 20 min
 7. Wake the Render app right before judging: 1 min
+
+## 60 seconds before judging
+
+Run this every time, in this order, starting ~5 minutes before any judging
+slot or live demo. Set `URL` once. Risks covered: `docs/submission/RISKS.md`
+R-01, R-03, R-04, R-09, R-10.
+
+```bash
+URL=https://clausecatcher.onrender.com    # no trailing slash
+```
+
+**1. Wake it and prove it's awake (~40 s of the 60).**
+
+```bash
+time curl -s $URL/api/health          # first hit: may take ~60 s (cold start)
+time curl -s $URL/api/health          # second hit: must be fast
+```
+
+Both must print `{"status":"ok"}`. The second call must come back in well
+under a second — that is the proof it is actually warm, not the first one.
+Then open `$URL` in a browser so the static frontend and fonts are warm too,
+and **leave that tab open**; reload it every ~10 minutes until judging starts,
+or Render sleeps it again after 15 idle minutes.
+
+**2. Prove the WebSocket is not 403 (~5 s).** Green health with a rejected
+socket is the failure that looks like a broken app.
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Connection: Upgrade" -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+  -H "Origin: $URL" $URL/ws/session/probe
+```
+
+Must print `101`. If it prints `403`, `CLAUSECATCHER_ALLOWED_ORIGINS` in the
+Render Environment tab does not exactly equal `$URL` — fix it (no trailing
+slash), save, wait for the redeploy, re-run.
+
+**3. Confirm the budget and kill-switch values (~10 s).** Render dashboard →
+service → **Environment**. Read, do not edit:
+
+| Variable | Must be | Why |
+|---|---|---|
+| `CLAUSECATCHER_PAID_DISABLED` | `0` | `1` means no alerts fire at all. |
+| `CLAUSECATCHER_BUDGET_USD` | `3` | `0` would refuse every AssemblyAI socket. |
+| `CLAUSECATCHER_MAX_LIVE_WS` | `2` | `0`/`1` can lock a judge out with "demo busy". |
+| `CLAUSECATCHER_MAX_CHECKS` | `40` | Per-session claim-check cap. |
+| `CLAUSECATCHER_MAX_GEMINI_CALLS` | `300` | Process-wide Gemini cap. |
+| `CLAUSECATCHER_ALLOWED_ORIGINS` | exactly `$URL` | See step 2. |
+
+While you're there, glance at the AssemblyAI and Gemini dashboards. If usage
+jumped overnight, set `CLAUSECATCHER_PAID_DISABLED=1` and rotate the key —
+but know that turns the alerts off, so only do it if the alternative is a
+dead key mid-demo.
+
+**4. Confirm the video link plays (~5 s).** Open the exact Vimeo URL you put
+in the submission form in a **private / logged-out** window. It must start
+playing without a login or password prompt — privacy must be "Anyone", not
+"Only me" or "People with the password". A link that only works while you're
+logged in is the most common silent submission failure.
+
+**If you have 60 more seconds**, drive one real alert: **Try the live demo** →
+**Use the demo contract** → tick consent → **Start the call** → paste into
+*Simulate rep line*: "We can absolutely do a verbal twenty percent discount
+and add ten extra seats today, no paperwork needed." A red §3.1 card must
+appear and the clause must be read aloud. That is the only check that proves
+AssemblyAI, Gemini and the voice leg are all alive at once.

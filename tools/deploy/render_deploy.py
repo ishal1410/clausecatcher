@@ -5,7 +5,14 @@ process's environment at runtime, never stored or printed), deploys, waits
 until live, pins CLAUSECATCHER_ALLOWED_ORIGINS to the service URL, redeploys,
 then checks /api/health.
 
-API reference (fetched 2026-09-17): https://api-docs.render.com/reference
+API reference (fetched 2026-09-17, payload shape re-verified against it the
+same day): https://api-docs.render.com/reference
+  Confirmed: `plan`, `region`, `runtime` and `envSpecificDetails` all live
+  INSIDE serviceDetails (not top level); `runtime` is current, `env` is the
+  deprecated spelling; `plan: free` is still a valid enum value alongside the
+  newer 0.5c-512mb naming; PUT env-vars takes a bare array and replaces ALL
+  vars without deploying; deployMode `deploy_only` cannot be combined with
+  clearCache/commitId/imageUrl (this script never does).
   GET   /owners                                  list-owners
   GET   /services?name=&type=&ownerId=           list-services
   POST  /services                                create-service (returns service + deployId)
@@ -224,7 +231,7 @@ def main() -> int:
         print(f"service '{name}' exists ({service['id']}): updating")
         api.call("PATCH", f"/services/{service['id']}", {"repo": args.repo, "branch": args.branch, "autoDeploy": "yes", "serviceDetails": service_details})
         # keep a previously pinned origin so this intermediate deploy doesn't open the WS to any origin
-        url0 = service["serviceDetails"].get("url")
+        url0 = service.get("serviceDetails", {}).get("url") or f"https://{name}.onrender.com"
         api.call("PUT", f"/services/{service['id']}/env-vars", env_vars(svc, url0, mode))
         deploy_id = api.call("POST", f"/services/{service['id']}/deploys", {"clearCache": "do_not_clear"}, fake={"id": "dep-DRYRUN1"})["id"]
 
@@ -232,7 +239,9 @@ def main() -> int:
     wait_live(api, sid, deploy_id, args.timeout_s)
 
     # 4. pin allowed origin to the real URL, redeploy
-    url = service["serviceDetails"]["url"]
+    # fall back to the predicted URL rather than KeyError-ing away a build that
+    # just took ten minutes on the free tier
+    url = service.get("serviceDetails", {}).get("url") or f"https://{name}.onrender.com"
     print(f"service URL: {url}")
     api.call("PUT", f"/services/{sid}/env-vars", env_vars(svc, url, mode))
     # env-only change: restart the already-built image instead of a second slow free-tier build

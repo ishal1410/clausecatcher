@@ -667,9 +667,9 @@ function HowItWorks() {
 
 /* Measured on our own demo calls (see docs); no projected or customer numbers. */
 const FACTS = [
-  { value: '~2 s', label: 'from the end of the rep’s sentence to the alert card on screen' },
+  { value: '~5 s', label: 'from the end of the rep’s sentence to the alert card on screen' },
   { value: '1.0', label: 'text similarity between the spoken alert and the signed clause' },
-  { value: '~$0.12', label: 'of API usage for one full demo call' },
+  { value: '~$0.15', label: 'of API usage for one full demo call' },
 ]
 
 function MeasuredFacts() {

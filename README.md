@@ -69,14 +69,16 @@ Both products are load-bearing. Cut Streaming STT and there's no reliable always
 From a live end-to-end run on 2026-09-15 (real AssemblyAI Streaming STT and Voice Agent connections, real Gemini claim-check, scripted rep lines fed through the pipeline):
 
 - A false "10% automatic discount" line raised an alert on contract §3.1; a false "24/7 on Standard" line raised an alert on §6.1. Consistent lines raised no alerts.
-- Alerts arrived roughly 2 seconds after the triggering sentence finished.
+- Alerts arrived 4 to 6 seconds after the triggering sentence finished (measured live in a real browser on 2026-09-17: 4.6 s, 5.6 s and 4.0 s on separate alerts). The Gemini claim check is the slow leg; the spoken response is not.
 - The spoken alert matched the contract text exactly (similarity 1.0, flagged `literal_spoken: true` by the server's own check).
 - First voice audio came back about 78 ms after the speak request was sent.
 - A monitor's spoken clause question (§4.2) was answered correctly by voice.
-- The call used about $0.12 of API usage end to end.
+- The call used about $0.08 to $0.15 of API usage end to end, depending on call length ($0.0755 for a 55 s call, $0.1535 for a 1:52 call, by the server's own meter).
 - 136 server-side tests pass (`pytest server/`).
 
-Not yet verified: the browser-microphone live path end to end in a real recording, and a deployed hosted instance. Nothing above is claimed for those.
+The browser-microphone path is verified: on 2026-09-17 an automated run drove a real browser (getUserMedia -> AudioWorklet -> 16 kHz PCM16 frames) through the full pipeline and passed 17 of 17 checks, with the alert->first voice audio at 375 ms. Each figure above comes from a single run, so treat them as examples, not averages.
+
+Not yet verified: a deployed hosted instance. Nothing above is claimed for one.
 
 ## Screenshots
 

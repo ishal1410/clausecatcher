@@ -238,7 +238,16 @@ def _stub_claim_checker(sentence: str, clauses: list[dict]) -> dict:
 
 def get_claim_checker() -> Callable[[str, list[dict]], dict]:
     """Real check_claim only when explicitly enabled AND a Gemini key exists;
-    else a stub that always returns unclear (logged once)."""
+    else a stub that always returns unclear (logged once).
+
+    CLAUSECATCHER_PAID_DISABLED=1 is the documented kill switch for ALL paid
+    upstreams (docs/DEPLOY.md). server/main.py already honours it for the
+    AssemblyAI STT/voice sockets; this is the same switch on the Gemini leg.
+    Read here (not at import) so flipping the env var on the host takes effect
+    on the next session without a rebuild.
+    """
+    if os.environ.get("CLAUSECATCHER_PAID_DISABLED") == "1":
+        return _stub_claim_checker
     key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if os.environ.get("CLAUSECATCHER_CLAIM_CHECK") == "gemini" and key:
         return check_claim
@@ -311,7 +320,13 @@ def demo() -> None:
         assert get_claim_checker() is _stub_claim_checker  # still no key -> stub
         os.environ["GEMINI_API_KEY"] = "fake-for-demo-only"
         assert get_claim_checker() is check_claim
+        # kill switch beats an otherwise fully-enabled config
+        os.environ["CLAUSECATCHER_PAID_DISABLED"] = "1"
+        assert get_claim_checker() is _stub_claim_checker
+        os.environ["CLAUSECATCHER_PAID_DISABLED"] = "0"
+        assert get_claim_checker() is check_claim
     finally:
+        os.environ.pop("CLAUSECATCHER_PAID_DISABLED", None)
         os.environ.pop("CLAUSECATCHER_CLAIM_CHECK", None)
         if old_key is None:
             os.environ.pop("GEMINI_API_KEY", None)

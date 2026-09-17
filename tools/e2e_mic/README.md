@@ -12,8 +12,8 @@ offline) at 48 kHz mono PCM16, which Chromium's
 | t (s)      | audio                                                                                   |
 |------------|-----------------------------------------------------------------------------------------|
 | 0.5 - 7.9  | "Past fifty seats, we will apply a ten percent volume discount automatically, no paperwork needed." (contradicts §3.1) |
-| +14 s gap  | silence (longer than alert + spoken clause, so mic gating can't swallow the next line)   |
-| ~21.9      | "Pricing stays a flat forty eight thousand dollars for up to fifty seats, as written in the contract." (consistent) |
+| +30 s gap  | silence (longer than alert + spoken clause, so mic gating can't swallow the next line)   |
+| ~37.9      | "Pricing stays a flat forty eight thousand dollars for up to fifty seats, as written in the contract." (consistent) |
 | +20 s      | silence (Chromium loops the file; the run ends before it loops)                          |
 
 Flow: landing -> **Try the live demo** -> **Use the demo contract** -> consent ->
@@ -58,9 +58,10 @@ promise), an alert on **§3.1** (timed from sentence end to alert), no alert on 
 consistent line, `agent_speaking` start/end, `agent_audio` frames, time from alert
 to first agent audio, and the 3.1 contradiction in the report.
 
-**Cost, about $0.07 and at most $0.12:** a session of about 45 s. That is
+**Cost, about $0.08 and at most $0.12:** a session of about 55 s (measured
+2026-09-17: `est_cost_usd` 0.0755). That is
 AssemblyAI streaming STT at $0.45/h (~$0.006), the AssemblyAI Voice Agent at
-$4.50/h while the session is open (~$0.056), and 2 Gemini flash-lite claim
+$4.50/h while the session is open (~$0.069), and 3 Gemini flash-lite claim
 checks (<$0.001). The rates come from `server/stt.py` and `server/voice.py`. The
 server's own `CLAUSECATCHER_BUDGET_USD` and session cap still apply.
 
