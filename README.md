@@ -2,7 +2,7 @@
 
 Live sales-call compliance guardian: it listens to a sales rep, checks what they say against the signed contract, and speaks the exact clause back the moment they contradict it.
 
-Built for the [lablab.ai AssemblyAI Voice Agent Hackathon](https://lablab.ai) (deadline Sep 30 2026). **Status: in development.**
+Built for the [lablab.ai AssemblyAI Voice Agent Hackathon](https://lablab.ai/ai-hackathons/assemblyai-voice-agent-hackathon) (deadline Sep 30 2026). **Status: in development.**
 
 ## The problem
 
@@ -14,7 +14,7 @@ ClauseCatcher listens the whole time and interrupts with the actual contract lan
 
 1. **Listen.** The browser mic streams PCM16 audio over a websocket to the FastAPI backend, which forwards it to AssemblyAI Streaming STT v3 for a live, always-on transcript of the rep. The STT session is seeded with keyterms pulled from the contract's own clauses, so section-specific language transcribes more reliably.
 2. **Check.** Every finalized sentence goes to Gemini (`gemini-3.5-flash-lite`, free tier) with the contract's clauses attached, and Gemini returns only a verdict and a clause ID, never generated text. If the check errors or times out, the sentence is marked "unclear" rather than treated as a contradiction. Gemini is never allowed to write the words that get spoken back. Those come straight from the contract.
-3. **Alert.** On a contradiction, the server sends an alert card to the browser and opens an AssemblyAI Voice Agent session to speak it, using `reply.create` with an instruction to say the literal clause text exactly, word for word. Nothing about the alert's wording passes through the LLM twice.
+3. **Alert.** On a contradiction, the server sends an alert card to the browser and opens an AssemblyAI Voice Agent session to speak it, using `reply.create` with an instruction to say the literal clause text exactly, word for word. Nothing about the alert's wording passes through the LLM twice. The spoken audio plays in the ClauseCatcher browser tab (the rep's own headset or speakers). ClauseCatcher doesn't connect to the calling platform and doesn't inject audio into the call.
 4. **Answer.** A manager watching the call can ask about any clause by number. The server looks the clause up directly and has the Voice Agent speak that answer the same verbatim way. There's no agent tool-calling round trip here, since that path proved unreliable in testing.
 5. **Report.** At the end of the call, the session produces a report: every clause referenced, every contradiction caught, and basic call stats.
 
@@ -74,16 +74,16 @@ From a live end-to-end run on 2026-09-15 (real AssemblyAI Streaming STT and Voic
 - First voice audio came back about 78 ms after the speak request was sent.
 - A monitor's spoken clause question (§4.2) was answered correctly by voice.
 - The call used about $0.12 of API usage end to end.
-- 81 server-side tests pass (`pytest server/`).
+- 136 server-side tests pass (`pytest server/`).
 
 Not yet verified: the browser-microphone live path end to end in a real recording, and a deployed hosted instance. Nothing above is claimed for those.
 
 ## Screenshots
 
-- `docs/screenshots/landing.png`: TODO
-- `docs/screenshots/setup-contract.png`: TODO
-- `docs/screenshots/cockpit-alert.png`: TODO
-- `docs/screenshots/report.png`: TODO
+![Landing page](docs/screenshots/landing.png)
+![Contract setup](docs/screenshots/setup-contract.png)
+![Live cockpit with a contradiction alert](docs/screenshots/cockpit-alert.png)
+![Alert spoken verbatim](docs/screenshots/cockpit-verbatim.png)
 
 ## Run locally
 
@@ -118,7 +118,7 @@ With `frontend/dist` built, the FastAPI server serves the built UI itself at `/`
 ## Tests
 
 ```bash
-pytest server/           # 81 tests, backend logic and API contract
+pytest server/           # 136 tests, backend logic and API contract
 cd frontend && npm test   # frontend unit tests (vitest)
 ```
 
@@ -131,7 +131,7 @@ cd frontend && npm test   # frontend unit tests (vitest)
 
 ## License
 
-No license file is included yet. Treat this repository as all-rights-reserved until one is added.
+MIT. See [LICENSE](LICENSE).
 
 ## Links
 

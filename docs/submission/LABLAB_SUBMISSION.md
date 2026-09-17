@@ -1,49 +1,124 @@
 # lablab.ai submission: ClauseCatcher
 
-Reference copy of the submission form content. Deadline: Sep 30 2026, 11:00 AM EDT.
+Copy-paste content for the lablab.ai submission form, field by field, in the order the event page lists them.
 
-## Title options
+- Event: AssemblyAI - Voice Agent Hackathon, https://lablab.ai/ai-hackathons/assemblyai-voice-agent-hackathon
+- Deadline: **Wed Sep 30 2026, 11:00 AM EDT** (event data `endAt: 2026-09-30T15:00:00.000Z`)
+- Field list: event page, "What to submit". Field limits: https://lablab.ai/delivering-your-hackathon-solution
+- Only two placeholders remain: `[VIMEO_URL]` and `[APP_URL]`. Fill both before submitting.
 
-1. **ClauseCatcher**
-2. **ClauseCatcher: Live Contract Compliance for Sales Calls**
-3. **ClauseCatcher: Catch the Promise Before the Contract Doesn't**
+---
 
-## Short description (≤255 characters)
+## 1. Basic information
 
-> ClauseCatcher listens to live sales calls and speaks the exact contract clause the moment a rep contradicts it: verbatim, in real time, no LLM-generated legal language.
+### Project title
 
-(184 characters)
+```
+ClauseCatcher
+```
 
-## Long description
+### Short description (limit: 255 characters)
 
-Sales reps improvise. What they say on a call and what the signed contract actually permits can drift apart in a single sentence, and by the time anyone notices, the call is over and the promise is already made. ClauseCatcher is a live compliance guardian that sits on the call and catches that drift while it's still happening.
+```
+A voice agent for live sales calls. When a rep promises something the signed contract doesn't allow, it reads the exact clause back out loud within about 2 seconds. It quotes the contract word for word and never makes up legal wording.
+```
 
-It listens to the rep's audio continuously through AssemblyAI Streaming STT v3, seeded with keyterms pulled from the uploaded contract so section-specific language transcribes cleanly. Every finished sentence is checked against the contract's clauses by Gemini running on the free tier, which returns only a verdict and a clause ID, never generated text. The moment a sentence contradicts a clause, the AssemblyAI Voice Agent API speaks that clause out loud, using a direct "say this exactly, word for word" instruction rather than feeding it through the agent's own language generation. That distinction is the whole point: the correction a rep hears is the actual contract text, not an LLM's summary of it.
+(235 characters.)
 
-A manager sitting in on the call can ask about any clause by number and get the same verbatim spoken answer. At the end of the call, ClauseCatcher produces a short report listing every clause referenced and every contradiction caught, so the record of the call matches what was actually said.
+### Long description (minimum: 100 words)
 
-Two design choices matter for trust. First, clause text is never generated: it's extracted once from the contract PDF and quoted, not paraphrased, every time. Second, when the claim-check step fails or times out, the sentence is marked "unclear," never treated as a contradiction. A tool that falsely accuses a rep is worse than one that occasionally misses something, so ClauseCatcher is built to fail toward silence.
+```
+IN ONE LINE
+When a sales rep promises something the contract doesn't allow, ClauseCatcher reads the rep the actual clause out loud, word for word, about 2 seconds later.
 
-A live end-to-end run on 2026-09-15, with real AssemblyAI connections and a real Gemini claim-check, caught two scripted false claims (a fake automatic discount and a fake 24/7 availability promise), raised no alerts on consistent lines, spoke both corrections back with an exact word-for-word match to the contract, and answered a spoken clause question correctly, all for about $0.12 of API usage.
+THE PROBLEM
+Sales reps improvise on live calls. One sentence ("we can do a verbal discount on the extra seats") can promise something the signed contract forbids. Nobody catches it while the call is happening, so it turns up weeks later as a customer dispute instead of a one-sentence correction. Today, compliance and sales-ops teams catch this, if they catch it at all, by spot-checking recordings after the fact.
 
-## Tech / tags
+WHAT CLAUSECATCHER DOES
+ClauseCatcher runs in a browser tab next to the call. Upload the contract PDF and it pulls out every clause once, word for word. During the call:
+1. Listen: the rep's microphone audio streams to AssemblyAI Streaming STT v3. The session is seeded with keyterms taken from the contract, so contract-specific terms transcribe cleanly.
+2. Check: each finished sentence goes to Gemini (free tier) with the clauses attached. Gemini returns only a verdict and a clause ID. It never writes any text that gets shown or spoken.
+3. Alert: when a sentence contradicts a clause, an alert card appears with the offending phrase underlined. The AssemblyAI Voice Agent API then speaks the literal clause, using a direct "say this exactly, word for word" instruction. The audio plays in the ClauseCatcher tab, through the rep's own headset or speakers. ClauseCatcher doesn't connect to the calling platform, so it doesn't inject anything into the call itself.
+4. Answer: a manager on the call can ask about any clause by number and hears it read back the same verbatim way.
+5. Report: when the call ends, the report lists every clause referenced and every contradiction caught.
 
-`AssemblyAI` · `Voice Agent API` · `Streaming STT` · `Gemini` · `FastAPI` · `Python` · `React` · `TypeScript` · `Vite` · `Sales Tech` · `Compliance` · `Real-time Audio`
+WHY IT CAN BE TRUSTED
+- Clause text is quoted, never generated. The LLM only picks a clause ID.
+- If a check fails, times out or can't be parsed, the sentence is marked "unclear", never "contradiction". Falsely accusing a rep is worse than missing a line, so errors stay silent.
+- Every alert cites one specific clause, and each clause can fire at most once every 20 seconds.
 
-## Judging criteria answers
+HOW IT USES ASSEMBLYAI
+It opens two AssemblyAI connections, and each has one job. Streaming STT v3 transcribes the whole call and has no reply behavior. The Voice Agent API is opened only when there is something to say. We started with a single Voice Agent session that both listened and spoke. Tested live, it started replying over the rep on its own, even with an explicit instruction to stay silent. Splitting the roles removes that failure by design (see docs/adr/0001-voice-architecture.md). We also tried injecting the alert as a conversation message. The agent ignored it. Only the direct "say exactly" instruction gave a word-for-word spoken match. We use the Voice Agent as a speaker on purpose: its own LLM never picks the words, because on a sales call a paraphrased contract is a new promise.
 
-### Application of Technology
+MEASURED, NOT PROJECTED
+One live end-to-end run on 2026-09-15, with real AssemblyAI and Gemini connections and scripted rep lines fed into the pipeline:
+- Two false claims caught: a fake automatic discount (contract §3.1) and a fake 24/7 support promise (§6.1). Consistent lines raised no alerts.
+- Alert about 2 s after the sentence ended. Spoken clause matched the contract text exactly (similarity 1.0). First voice audio about 78 ms after the speak request.
+- A spoken question about clause §4.2 was answered correctly.
+- About $0.12 of API usage for the whole call.
+- 136 backend tests pass (pytest server/).
+Not yet verified end to end: the live browser-microphone path, and the hosted deployment. We don't claim results for either.
 
-ClauseCatcher uses both halves of the AssemblyAI Voice Agent Hackathon's namesake API for two different, deliberately separated jobs: Streaming STT v3 carries the rep's audio for the whole call with no reply behavior to manage, and the Voice Agent API is opened reactively, only when there's something to say, and instructed to speak a fixed string exactly rather than generate a response. That two-connection split came out of a documented architecture decision (`docs/adr/0001-voice-architecture.md`): a single Voice Agent session handling both listening and speaking was tested live first, and it started unprompted replies over the rep's speech despite an explicit silence instruction. Splitting the two roles across two connections removed that failure mode structurally instead of trying to prompt around it.
+WHO IT'S FOR
+Sales-ops and revenue-compliance teams at B2B companies whose reps quote pricing, renewal, data-retention or SLA terms on live calls. The first buyer is whoever owns contract risk today and learns about a bad promise only after the customer brings it up.
 
-### Presentation
+Most call-review tools analyze recordings after the call ends. ClauseCatcher differs in two ways: it acts during the call, and it checks the rep against this customer's signed contract, not a generic sales script. Business-model hypothesis (not yet validated with buyers): a per-rep monthly subscription sold to sales-ops. API cost is small next to that; the measured demo call used about $0.12.
 
-The product's single visual and audio payoff, an alert card appearing with the offending phrase underlined in the transcript while the Voice Agent speaks the literal clause back, is designed to be the one thing a judge remembers. The cockpit UI (see `docs/UI_SCREENS_SPEC.md`) keeps that moment uncluttered: a three-pane live-call view with the transcript, the alert stack, and a voice orb that visibly reacts to the agent's own audio.
+WHAT'S NEXT
+A hardened browser-mic path, CRM and meeting-platform integration (for example Zoom or Google Meet audio), multi-contract accounts, and a per-seat pricing pilot with a sales team.
+```
 
-### Business Value
+Word count: about 760. Keep the section headings in caps; lablab's editor may strip Markdown.
 
-Sales compliance failures are expensive precisely because nobody catches them until after the call: a rep's verbal promise becomes a customer expectation, and reconciling that against the signed contract after the fact is a support or legal problem instead of a one-sentence correction. ClauseCatcher moves that catch to the moment it happens, live, audibly, with a record attached. It's aimed at compliance and sales-ops teams who currently rely on spot-checking recorded calls after the fact.
+### Technology & category tags
 
-### Originality
+Pick from lablab's tag picker. If a tag doesn't exist there, skip it. Don't invent tags. In priority order:
 
-The mechanism that makes this work, using a direct "say this text exactly" instruction to the Voice Agent instead of injecting content as a fake conversation turn, was found through failed attempts, not assumed. An earlier version tried injecting the alert as a conversation message and the agent ignored it and asked for the alert content again; the literal-instruction approach was what actually produced a verbatim spoken match. The product's core constraint, that an AI-adjacent tool speaking on a live sales call must never say anything the contract doesn't literally say, shaped every part of the pipeline around quoting instead of generating.
+- Technology: `AssemblyAI`, `Gemini`, `FastAPI`, `Python`, `React`, `TypeScript`
+- Category: `Voice AI` / `Voice Agents`, `Speech-to-Text`, `Sales`, `Compliance`, `Legal`, `Productivity`
+
+---
+
+## 2. Cover image and presentation
+
+### Cover image
+
+Upload `docs/submission/cover.png`: 1920 x 1080 PNG (16:9), about 0.6 MB. Source: `docs/submission/cover.html`. The official guide says "PNG or JPG" and "Recommended 16:9". It gives no pixel size.
+
+### Video presentation
+
+```
+[VIMEO_URL]
+```
+
+Rules from the guide: "A maximum 5-minute video in MP4 format. Begin with an introduction, discuss your PDF presentation, then showcase your project's functionalities." Keep the MP4 export at or under 5:00. Script: `docs/submission/DEMO_SCRIPT.md`. If the form wants an upload instead of a link, upload the same MP4.
+
+### Slide presentation
+
+Upload `docs/submission/ClauseCatcher.pdf` (the guide asks for PDF). Outline and speaker notes: `docs/submission/SLIDES.md`. The PDF already says 136 tests (slide 9).
+
+---
+
+## 3. App hosting and repository
+
+### Public GitHub repository
+
+```
+https://github.com/ishal1410/clausecatcher
+```
+
+### Demo application platform
+
+```
+Render
+```
+
+(The guide suggests Streamlit, Replit or Vercel. It doesn't require them. The app is a FastAPI + WebSocket server serving the built React UI from one Docker image, so it runs on Render's free Docker web service. See `docs/DEPLOY.md`. If the form only offers those three, pick "Other" if it's there. Don't pick a platform the app isn't actually hosted on.)
+
+### Application URL
+
+```
+[APP_URL]
+```
+
+Render's free tier sleeps when idle. Open the URL about 1 minute before submitting, and again during judging, so the first judge doesn't hit a cold start.
