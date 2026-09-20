@@ -142,7 +142,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Links
 
-- Demo video: `docs/submission/demo.mp4` (4:21). The Vimeo link goes here when the submission form is filled in.
+- Demo video: https://vimeo.com/1228498903 (4:21). Source file: `docs/submission/demo.mp4`.
 - Live app: https://clausecatcher.onrender.com . Hosted on Render's free tier, so the first request after an idle period takes about 60 seconds to wake. No microphone needed: click Use the demo contract, start the call, and type a line into Simulate rep line -- it runs the identical pipeline.
 - Slides: `docs/submission/ClauseCatcher.pdf`. Outline and speaker notes in `docs/submission/SLIDES.md`.
 - Evidence for the measured numbers: `docs/evidence/`.

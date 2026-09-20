@@ -5,7 +5,7 @@ Copy-paste content for the lablab.ai submission form, field by field, in the ord
 - Event: AssemblyAI - Voice Agent Hackathon, https://lablab.ai/ai-hackathons/assemblyai-voice-agent-hackathon
 - Deadline: **Wed Sep 30 2026, 11:00 AM EDT** (event data `endAt: 2026-09-30T15:00:00.000Z`)
 - Field list: event page, "What to submit". Field limits: https://lablab.ai/delivering-your-hackathon-solution
-- One placeholder remains: `[VIMEO_URL]`. The application URL is filled in and verified live.
+- No placeholders remain. The application URL and the video link are both filled in and verified (the video returns HTTP 200 logged out; oEmbed reports 261 s).
 
 ---
 
@@ -94,7 +94,7 @@ Upload `docs/submission/cover.png`: 1920 x 1080 PNG (16:9), about 0.6 MB. Source
 ### Video presentation
 
 ```
-[VIMEO_URL]
+https://vimeo.com/1228498903
 ```
 
 Rules from the guide: "A maximum 5-minute video in MP4 format. Begin with an introduction, discuss your PDF presentation, then showcase your project's functionalities." Keep the MP4 export at or under 5:00. Script: `docs/submission/DEMO_SCRIPT.md`. If the form wants an upload instead of a link, upload the same MP4.
