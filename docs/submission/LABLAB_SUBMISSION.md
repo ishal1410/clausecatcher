@@ -5,7 +5,7 @@ Copy-paste content for the lablab.ai submission form, field by field, in the ord
 - Event: AssemblyAI - Voice Agent Hackathon, https://lablab.ai/ai-hackathons/assemblyai-voice-agent-hackathon
 - Deadline: **Wed Sep 30 2026, 11:00 AM EDT** (event data `endAt: 2026-09-30T15:00:00.000Z`)
 - Field list: event page, "What to submit". Field limits: https://lablab.ai/delivering-your-hackathon-solution
-- Only two placeholders remain: `[VIMEO_URL]` and `[APP_URL]`. Fill both before submitting.
+- One placeholder remains: `[VIMEO_URL]`. The application URL is filled in and verified live.
 
 ---
 
@@ -120,7 +120,7 @@ Render
 ### Application URL
 
 ```
-[APP_URL]
+https://clausecatcher.onrender.com
 ```
 
 Render's free tier sleeps when idle. Open the URL about 1 minute before submitting, and again during judging, so the first judge doesn't hit a cold start.
