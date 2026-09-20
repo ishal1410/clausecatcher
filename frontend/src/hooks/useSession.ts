@@ -46,6 +46,9 @@ export interface SessionState {
   agentSpeaking: boolean
   report: Report | null
   error: string | null
+  /** Latched once any line fails its contradiction check. Never reset within
+   * a call: an unchecked line stays unchecked. */
+  checkFailed: boolean
 }
 
 export const initialState: SessionState = {
@@ -58,6 +61,7 @@ export const initialState: SessionState = {
   agentSpeaking: false,
   report: null,
   error: null,
+  checkFailed: false,
 }
 
 type Action =
@@ -139,7 +143,14 @@ export function reducer(state: SessionState, action: Action): SessionState {
           // check_error is newer than this file's protocol.ts copy
           const other = msg as { type: string; message?: string }
           if (other.type === 'check_error') {
-            return { ...state, error: other.message ?? 'That line could not be checked against the contract.' }
+            // Latched, not transient: `error` is toasted for 5s, but a line
+            // that was never checked stays unchecked for the rest of the call,
+            // so the verdict tile must keep saying so.
+            return {
+              ...state,
+              checkFailed: true,
+              error: other.message ?? 'That line could not be checked against the contract.',
+            }
           }
           return state
         }

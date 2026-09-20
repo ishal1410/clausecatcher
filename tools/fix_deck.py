@@ -43,8 +43,25 @@ EDITS = [
     ("~$0.12", "~$0.15", "TRUTH_AUDIT #9"),
     ("API usage, full demo call", "API usage, full call ($0.08–$0.15)", "TRUTH_AUDIT #9"),
     ("~$0.12 API usage per demo call", "$0.08–$0.15 API usage per call", "TRUTH_AUDIT #9"),
-    # test count moved with the demo-day fixes
-    ("136 server tests passing", "151 server tests passing", "commit 967bb25"),
+    # the eval is the strongest technical result in the project and the deck
+    # never mentioned it (docs/evidence/claim_check_eval_20260918.json)
+    ("151 server tests passing",
+     "14/14 contradictions caught, 0 false alarms; 151 server tests passing",
+     "JUDGE_REVIEW 2026-09-20 §2.2"),
+    # (the earlier "136 server tests passing" -> "151" rule retired once the
+    # eval rule above took over that paragraph; 136 appears in no deck now)
+    # JUDGE_REVIEW 2026-09-20: this contradicts README.md:18, which says the
+    # clause request is "a dropdown, not a spoken question", and the video at
+    # 2:09 shows the dropdown. One caught overclaim discounts every other
+    # number on a slide titled MEASURED, NOT PROJECTED.
+    ("A monitor's spoken question about §4.2 answered correctly by voice",
+     "A monitor's clause request for §4.2, picked from the rail, answered by voice",
+     "JUDGE_REVIEW 2026-09-20 §2.1"),
+    # underclaim: the browser path is verified 17/17 (CHECKLIST item 14); what
+    # is actually untested is physical microphone hardware
+    ("Browser-mic path, hardened end to end",
+     "Physical-mic hardware (browser path verified 17/17)",
+     "JUDGE_REVIEW 2026-09-20 §2.7"),
     # the deck now cites more than one run, so the subtitle has to agree
     ("One live end-to-end run, real connections", "Live end-to-end runs, real connections",
      "TRUTH_AUDIT #1,2,9"),
@@ -94,6 +111,14 @@ def main() -> None:
                 if not args.check:
                     set_text(para, new)
                 break
+
+    # An edit can chain onto an earlier one (136 -> 151 -> 151 + eval numbers),
+    # so a rule whose `old` never matched is still satisfied if its `new` text
+    # is somewhere in the deck.
+    final = {"".join(r.text for r in para.runs).strip() for _, para in paragraphs(prs)}
+    for old, new, _why in EDITS:
+        if hits[old] == 0 and new.strip() in final:
+            hits[old] += 1
 
     missing = [old for old, n in hits.items() if n == 0]
     if missing:

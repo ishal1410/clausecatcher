@@ -32,7 +32,7 @@ says the LLM never generates clause language. That is true of Gemini and not of 
 
 ---
 
-## Must fix before submitting
+## Must fix before submitting (as written 2026-09-17 — rows 1, 2 and 7 are now closed; see "Resolved since this audit" above)
 
 1. **The slide PDF and PPTX still carry the numbers we already retracted.** `ClauseCatcher.pdf` pages 4,
    9 and 10 (and the matching `slide4/9/10.xml` in the PPTX) say `~2 s`, `~78 ms` and `~$0.12`. The PDF
@@ -62,7 +62,7 @@ says the LLM never generates clause language. That is true of Gemini and not of 
 
 ---
 
-## Real test counts, re-run today
+## Test counts as re-run on 2026-09-17 (now 151 backend / 33 frontend, see the resolution table above)
 
 | Suite | Command | Result |
 |---|---|---|
@@ -70,7 +70,7 @@ says the LLM never generates clause language. That is true of Gemini and not of 
 | Backend, as the README writes it | `python -m pytest server/ -q`, same clean env | **136 passed**, 21.7 s |
 | Frontend | `cd frontend && npx vitest run` | **21 passed** in 4 files, 314 ms |
 
-So "136 tests" is correct wherever it appears. "81 tests" appears in no current file: the two places
+So "136 tests" was correct wherever it appeared **on 2026-09-17**. The demo-day fixes in `967bb25` added tests: the suites now report 151 backend and 33 frontend, and every doc was updated to match on 2026-09-20. "81 tests" appears in no current file: the two places
 that claim it does (CHECKLIST line 25, RISKS line 279) are themselves wrong.
 
 ---

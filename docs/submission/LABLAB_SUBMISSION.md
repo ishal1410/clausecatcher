@@ -23,7 +23,7 @@ ClauseCatcher
 A voice agent for live sales calls. When a rep promises something the signed contract doesn't allow, it reads the exact clause back out loud seconds later. It quotes the contract word for word and never makes up legal wording.
 ```
 
-(235 characters.)
+(226 characters.)
 
 ### Long description (minimum: 100 words)
 
@@ -70,7 +70,7 @@ WHAT'S NEXT
 A hardened browser-mic path, CRM and meeting-platform integration (for example Zoom or Google Meet audio), multi-contract accounts, and a per-seat pricing pilot with a sales team.
 ```
 
-Word count: about 760. Keep the section headings in caps; lablab's editor may strip Markdown.
+Word count: about 945. Keep the section headings in caps; lablab's editor may strip Markdown.
 
 ### Technology & category tags
 

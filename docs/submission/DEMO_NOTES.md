@@ -23,7 +23,7 @@ Nothing is simulated, staged, or re-timed:
   badges are the app's own post-speech check, not a caption.
 - **Report** — the real end-of-call report, including the real cost meter.
 
-## Beat map (final-video timecodes)
+## Beat map (the product take, 0:00–2:54 of the final cut)
 
 | Time | What |
 |---|---|

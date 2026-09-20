@@ -127,7 +127,9 @@ reads it as fake.
   loaded clauses, not a scripted match — it returned §3.1 for a sentence
   ("*We can absolutely do a verbal twenty percent discount and add ten extra
   seats today, no paperwork needed*") that appears nowhere in the repo.
-  136 server tests pass. The demo contract has four clauses (§3.1 pricing,
+  151 server tests pass. Since 2026-09-20 a runtime Gemini failure also degrades
+  honestly in the cockpit itself: the verdict tile reads "Not checked" rather than
+  "On-contract" whenever the checker is not ready or a check has failed. The demo contract has four clauses (§3.1 pricing,
   §4.2 renewal, §5.3 retention, §6.1 SLA), so there are four independent
   things to contradict, plus "Ask a clause aloud" which reads any section
   verbatim on demand.

@@ -37,6 +37,21 @@ Screenshots referenced below live in the run scratchpad
 
 ## 1. CRITICAL — the product says "clean call" when it never checked anything
 
+> **Fixed in two passes.** `967bb25` put the claim-check leg on the wire and made
+> the Gemini pill and the end-of-call report honest. A second pass on 2026-09-20
+> closed the half that was missed: `CallVerdict` derived "Call status: On-contract"
+> from `connected && contradictions === 0` alone, so the biggest tile in the
+> cockpit still announced the call matched the contract when nothing had been
+> checked, and "Lines checked" counted transcript finals rather than checks.
+> `callStatus()` now requires `claim_check === 'ready'` and no `check_error` this
+> call before it will say On-contract, otherwise it reads "Not checked" with an
+> em dash for the count; `useSession` latches `checkFailed` because a line that
+> was never checked stays unchecked. `Cockpit` was also never passing
+> `claimCheck` to `TopBar`, so the pill sat on "connecting" all call. Pinned by
+> `CallVerdict.test.ts` (5 cases) and confirmed in a real browser with the
+> checker off: the tile reads "Not checked".
+
+
 **What the judge sees.** Types the money line into "Simulate rep line" —
 *"We can knock ten percent off the price for you."* — presses send. The line appears in the
 transcript, **Lines checked: 1**, **Contradictions: 0**, **Call status: On-contract**, and the

@@ -29,6 +29,7 @@ interface FakeState {
   alerts: AlertRecord[]
   clauses: Clause[]
   agentSpeaking: boolean
+  checkFailed: boolean
   report: Report | null
   error: string | null
 }
@@ -41,6 +42,7 @@ const initial: FakeState = {
   alerts: [],
   clauses: [],
   agentSpeaking: false,
+  checkFailed: false,
   report: null,
   error: null,
 }

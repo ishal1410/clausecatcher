@@ -117,6 +117,7 @@ const CockpitBody = memo(function CockpitBody({
         sttStreaming={sttStreaming}
         geminiActive={geminiActive}
         voiceSpeaking={agentSpeaking}
+        claimCheck={state.status?.claim_check}
         onEnd={onEnd}
       />
 
@@ -131,7 +132,14 @@ const CockpitBody = memo(function CockpitBody({
 
         <main aria-label="Call verdict and contradiction alerts" className="order-1 flex min-h-0 min-w-0 flex-col bg-bg-sunken lg:order-none">
           <div className="cc-verdict shrink-0">
-            <CallVerdict connected={connected} checked={finalCount} contradictions={alerts.length} spoken={confirmedKeys.size} />
+            <CallVerdict
+              connected={connected}
+              checked={finalCount}
+              contradictions={alerts.length}
+              spoken={confirmedKeys.size}
+              claimCheck={state.status?.claim_check}
+              checkFailed={state.checkFailed}
+            />
           </div>
           <AlertStack
             alerts={alerts}
