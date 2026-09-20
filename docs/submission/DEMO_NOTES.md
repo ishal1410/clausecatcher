@@ -1,7 +1,8 @@
 # demo.mp4 — what's in it, what was measured, how to upload
 
-**File:** `docs/submission/demo.mp4` · 2:54.4 (174.4 s) · 1920×1080 · 30 fps · H.264 High / AAC-LC 48 kHz stereo · 22.4 MB
-lablab limit is 5:00; target window was 2:30–3:00.
+**File:** `docs/submission/demo.mp4` · 4:20.8 (260.8 s) · 1920×1080 · 30 fps · H.264 High / AAC-LC 48 kHz stereo · 25.6 MB
+lablab limit is 5:00. The rubric scores a video under 3:00 in its *2 - Limited* band, so the shipped cut
+is 4:20: the 2:54 product take, then three narrated closing cards before the end card.
 
 Produced by `tools/demo_video/record.py --server live --i-mean-live` (Playwright take of the real app +
 edge-tts narration + ffmpeg assembly), from the shot list in `DEMO_SCRIPT.md`.
@@ -42,6 +43,37 @@ Nothing is simulated, staged, or re-timed:
 | 2:09 | Manager opens the command bar; 2:13 asks for §4.2, agent speaks the clause |
 | 2:32 | End call → report: 60% of lines on-contract, timeline, clauses checked, call facts |
 | 2:44 | End card |
+
+## The closing cards (added 2026-09-20)
+
+The product take ends at 2:54. lablab's Presentation rubric puts a numeric floor at 3:00 - anything
+shorter scores in its *2 - Limited* band - and its 4-5 bands ask for market analysis, competitive
+positioning and future plans, none of which the take says. `tools/demo_video/append_closing.py`
+splices three narrated cards in at **163.06 s** (`take_end`, the end-card boundary from
+`docs/evidence/demo_take_timeline.json`), so they land before the end card, not after it. The live
+footage is not re-cut or re-timed.
+
+| Time | Card | What it claims |
+|---|---|---|
+| 2:43 | Market | $1.6B-$32B published 2026 conversation-intelligence estimates; 1.59M US reps; $0.6B-$1.1B at $30-60 a seat; 292k-rep beachhead |
+| 3:19 | Why this is different | post-call scoring against a generic playbook vs. during-call against this contract; $0.08-$0.15 per call |
+| 3:47 | What's next | browser-mic hardening then Zoom/Meet audio, CRM write-back, multi-contract accounts, paid pilot |
+| 4:09 | End card | unchanged |
+
+Where the market numbers come from, so they can be defended or dropped:
+
+- **$1.6B-$32B.** Published 2026 estimates for "conversation intelligence software" really do span an
+  order of magnitude, because each firm draws the category differently. The card shows the spread
+  rather than quoting the flattering end; the narration says why.
+- **1.59M US wholesale and manufacturing sales reps.** BLS Occupational Outlook Handbook, 2025
+  employment: 1.3M except-technical-and-scientific + 292k technical and scientific.
+  https://www.bls.gov/ooh/sales/wholesale-and-manufacturing-sales-representatives.htm
+- **$0.6B-$1.1B.** 1.59M x $30-60 x 12. The per-seat price is a hypothesis, labelled as one on the
+  card and in the narration. It has not been tested with a buyer.
+
+Audio is level-matched, not just appended: each narration is loudnorm'd to the same I=-16 target the
+original mix used. Measured on the shipped file, mean volume is -19.3 to -20.0 dBFS across the three
+cards against -21.4 dBFS for the footage, with identical -4.5 dBFS peaks.
 
 ## Measured in the take that shipped
 

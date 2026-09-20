@@ -76,7 +76,7 @@ From live end-to-end runs on 2026-09-15 and 2026-09-17 (real AssemblyAI Streamin
 - Alert to first spoken word: 375 ms in the browser run. A separate probe measured the speak request to the first audio frame at 78 to 890 ms across seven steps; 375 ms is the boundary a listener actually experiences, so that is the one we lead with.
 - A monitor's clause request for §4.2, picked from the cockpit rail, was read back correctly by voice.
 - The call cost about $0.08 to $0.15 by the app's own estimate ($0.0755 for a 55 s call, $0.1535 for a 1:52 call). The estimate prices AssemblyAI at list rate by connection time and doesn't meter Gemini at all, so it is an estimate, not a billed amount.
-- 136 server-side tests pass (`pytest server/`).
+- 151 server-side tests pass (`pytest server/`).
 - Claim-check accuracy, measured 2026-09-18 against the 32 labeled sentences in `spikes/claim_check/labeled_claims.json`, on the `gemini-3.5-flash-lite` free tier: 14 of 14 contradictions caught, each with the right clause ID; 0 false alarms across the 18 sentences that were consistent or genuinely unclear; 0 errors; median 3.5 s per check. Those 32 sentences were written against the same four-clause demo contract, so this measures the checker on its own fixture, not on a contract it has never seen. Confusion matrix and method: [`docs/evidence/README.md`](docs/evidence/README.md).
 
 The browser-microphone path is verified end to end: on 2026-09-17 an automated run drove a real browser (getUserMedia -> AudioWorklet -> 16 kHz PCM16 frames) through the full pipeline and passed all 17 of its live-path checks. The microphone in that run was Chromium's fake audio device playing a WAV file (`--use-fake-device-for-media-stream`), not physical hardware. The browser, the worklet and the frame path are real; the capture device is synthetic, and physical mic hardware is still untested.
@@ -125,7 +125,7 @@ With `frontend/dist` built, the FastAPI server serves the built UI itself at `/`
 ## Tests
 
 ```bash
-pytest server/           # 136 tests, backend logic and API contract
+pytest server/           # 151 tests, backend logic and API contract
 cd frontend && npm test   # frontend unit tests (vitest)
 ```
 
@@ -142,7 +142,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Links
 
-- Demo video: `docs/submission/demo.mp4` (2:54). The Vimeo link goes here when the submission form is filled in.
+- Demo video: `docs/submission/demo.mp4` (4:21). The Vimeo link goes here when the submission form is filled in.
 - Live app: not deployed. Run it locally with the steps above; nothing in this README is claimed for a hosted instance.
 - Slides: `docs/submission/ClauseCatcher.pdf`. Outline and speaker notes in `docs/submission/SLIDES.md`.
 - Evidence for the measured numbers: `docs/evidence/`.

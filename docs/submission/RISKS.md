@@ -302,7 +302,7 @@ before judging. None of them need more code.
 
 1. Deploy to Render and verify the WebSocket probe returns `101` (~30 min).
 2. Pad the recorded video to 3:30–4:30 and upload it to Vimeo (1–2 h). The take
-   is shipped at 2:54; the padding plan is in `DEMO_NOTES.md`.
+   is shipped at 4:20.8, above the rubric's 3:00 floor; see `DEMO_NOTES.md`.
 3. Check the repo in a logged-out browser (~15 min).
 4. Fill in and submit the lablab form (~20 min).
 

@@ -9,6 +9,29 @@ suites, not by reading the docs.
 
 ---
 
+## Resolved since this audit (2026-09-20)
+
+The audit's own wording was used for each fix; nothing below was re-argued, only applied.
+
+| Row | Where it lived | What was done |
+|---|---|---|
+| 1, 2 | PDF p4/p9, pptx slide 4 and 9 | `~2 s` -> `~5 s`, caption now reads `(4-6.5 s, five alerts)` |
+| 8 | PDF p9, pptx slide 9 | `~78 ms` -> `~0.2 s`, caption now reads `(78-890 ms)` |
+| 9 | PDF p9 and p10, pptx slide 9 and 10 | `~$0.12` -> `~$0.15` and `$0.08-$0.15 API usage per call` |
+| 17 | PDF p9 | similarity caption -> `agent transcript vs. clause text` |
+| - | pptx slide 9 | `136 server tests passing` -> `151`; subtitle and run date now say runs, plural, 2026-09-15 to 2026-09-17 |
+| 3, 4, 5, 6, 7 | `cover.html`, `SLIDES.md`, `DEMO_SCRIPT.md`, `README.md`, `LABLAB_SUBMISSION.md` | already corrected in commit `967bb25`; verified by grep on 2026-09-20 |
+
+Mechanism: `python tools/fix_deck.py` (exact-paragraph replacements, each row annotated with the audit
+row it satisfies, idempotent and `--check`-able), then a PowerPoint re-export to `ClauseCatcher.pdf`.
+Verified by extracting the PDF text and by rendering slide 9 to PNG - the first attempt at row 8 made
+the stat box break mid-word, which is why it reads `~0.2 s` rather than `~200 ms`.
+
+Row 22 (the Voice Agent does generate the spoken utterance) is **not** fixed in the deck: slide 8 still
+says the LLM never generates clause language. That is true of Gemini and not of the Voice Agent leg.
+
+---
+
 ## Must fix before submitting
 
 1. **The slide PDF and PPTX still carry the numbers we already retracted.** `ClauseCatcher.pdf` pages 4,

@@ -33,3 +33,7 @@ spikes/harness/audio/_tmp/
 frontend/node_modules/
 frontend/dist/
 frontend/.shoot-*.mjs
+
+# demo-video scratch: card PNGs, tts cache, frame grabs, pre-splice masters
+docs/submission/_closing/
+docs/submission/demo_*_backup.mp4

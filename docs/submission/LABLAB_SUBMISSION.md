@@ -56,7 +56,7 @@ Live end-to-end runs on 2026-09-15 and 2026-09-17, with real AssemblyAI and Gemi
 - Alert 4 to 6.5 seconds after the sentence ended, across five logged alerts: 4.0 s, 4.3 s, 5.6 s, 6.2 s and 6.49 s. The Voice Agent's own transcript of its reply matched the contract text exactly (similarity 1.0), which is the server's post-speech check. Alert to first spoken word: 375 ms.
 - A clause request for §4.2, picked from the cockpit rail, was read back correctly by voice.
 - About $0.08 to $0.15 per call by the app's own cost estimate ($0.0755 for 55 s, $0.1535 for 1:52). That estimate prices AssemblyAI by connection time at list rate and does not meter Gemini, so it is an estimate rather than a bill.
-- 136 backend tests pass (pytest server/).
+- 151 backend tests pass (pytest server/).
 The browser-microphone path is verified end to end: an automated run on 2026-09-17 drove a real browser through getUserMedia, an AudioWorklet and 16 kHz PCM16 frames and passed all 17 of its live-path checks. The capture device was Chromium's fake audio device playing a WAV file, not physical microphone hardware. Every figure here comes from a single run, not an average.
 
 Not yet verified: the hosted deployment. We don't claim results for it.
@@ -97,7 +97,7 @@ Rules from the guide: "A maximum 5-minute video in MP4 format. Begin with an int
 
 ### Slide presentation
 
-Upload `docs/submission/ClauseCatcher.pdf` (the guide asks for PDF). Outline and speaker notes: `docs/submission/SLIDES.md`. The PDF already says 136 tests (slide 9).
+Upload `docs/submission/ClauseCatcher.pdf` (the guide asks for PDF). Outline and speaker notes: `docs/submission/SLIDES.md`. Re-exported 2026-09-20 from `ClauseCatcher.pptx` after `tools/fix_deck.py` corrected the numbers the deck still carried from before `TRUTH_AUDIT.md` (slide 4 and 9 `~2 s`, slide 9 `~78 ms` and the similarity caption, `~$0.12` on 9 and 10) and updated the test count to 151.
 
 ---
 

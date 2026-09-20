@@ -83,7 +83,7 @@
 - Two false claims caught (§3.1, §6.1); consistent lines raised nothing
 - Alerts 4 to 6.5 s after the sentence, across five logged alerts; the agent's own transcript verified word for word against the clause
 - Alert to first spoken word: 375 ms
-- $0.08 to $0.15 per call by the app's own estimate; 136 backend tests passing
+- $0.08 to $0.15 per call by the app's own estimate; 151 backend tests passing
 - Browser-mic path verified end to end, 17 of 17 automated checks (Sep 17 2026)
 
 **Speaker notes:** These are numbers from real end-to-end runs, not projections, and the logs are in the repo under docs/evidence. Say the caveats once, plainly: each figure is a single run rather than an average, the browser-mic run used Chromium's fake capture device instead of a physical microphone, and there is no hosted deployment yet, so nothing here is claimed for one.
