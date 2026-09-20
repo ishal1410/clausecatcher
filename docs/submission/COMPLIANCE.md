@@ -111,4 +111,4 @@ Secondary, only if the first four come back fast:
 - **Deck contents.** `ClauseCatcher.pdf` verified only as a valid 11-page PDF — the slides were not read, so the TAM/SAM and competitive-analysis rubric items in finding #10 are unconfirmed.
 - **Video contents.** `demo.mp4` verified only by container/codec/duration. Not watched, so finding #25 (no real contract or real third-party voice in the footage) is asserted from our own docs, not observed.
 - **Aceternity UI and Kokonut UI license terms.** `THIRD_PARTY.md` asserts them; no LICENSE file was fetched from either project to confirm an SPDX identifier. Immaterial while the re-implementation claim holds.
-- **The deployed app.** Does not exist yet, so nothing about it was tested. Render's free tier sleeps — once deployed, wake it before judging.
+- **The deployed app.** Deployed 2026-09-20, after this audit: https://clausecatcher.onrender.com, verified live (health, WS 101/403, one real contradiction in 4.7 s). See CHECKLIST.md row 12. Render's free tier sleeps — once deployed, wake it before judging.

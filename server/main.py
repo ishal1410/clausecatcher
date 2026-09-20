@@ -120,6 +120,11 @@ class SecurityHeadersMiddleware:
         ]
         if _is_https(scope):
             extra.append((b"strict-transport-security", b"max-age=31536000; includeSubDomains"))
+        # /api responses carry the caller's own contract clauses and session
+        # report; nothing in them is shared or re-servable, so keep proxies and
+        # the browser cache out of them.
+        if scope.get("path", "").startswith("/api"):
+            extra.append((b"cache-control", b"no-store"))
 
         async def send_with_headers(message) -> None:  # noqa: ANN001
             if message["type"] == "http.response.start":

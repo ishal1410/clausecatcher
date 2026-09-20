@@ -62,6 +62,11 @@ EDITS = [
     ("Browser-mic path, hardened end to end",
      "Physical-mic hardware (browser path verified 17/17)",
      "JUDGE_REVIEW 2026-09-20 §2.7"),
+    # the app went live 2026-09-20; listing it as future work on the last
+    # slide advertises a gap that no longer exists, one slide after the judge
+    # has already clicked the working URL
+    ("A hosted, deployed instance", "CRM and meeting-platform audio",
+     "deployed 2026-09-20, commit 1cf7ff6"),
     # the deck now cites more than one run, so the subtitle has to agree
     ("One live end-to-end run, real connections", "Live end-to-end runs, real connections",
      "TRUTH_AUDIT #1,2,9"),

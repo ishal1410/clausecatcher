@@ -116,7 +116,7 @@ actual text, page for page with `ClauseCatcher.pdf`; the speaker notes are what 
 - 14/14 contradictions caught, 0 false alarms; 151 server tests passing
 - *Footnote:* Runs of 2026-09-15 to 2026-09-17: real AssemblyAI Streaming STT, Voice Agent and Gemini connections, scripted rep lines fed through the pipeline.
 
-**Speaker notes:** These are numbers from real end-to-end runs, not projections, and the logs are in the repo under docs/evidence. Say the caveats once, plainly: the figures come from a handful of runs rather than a large sample, the browser-mic run used Chromium's fake capture device instead of a physical microphone, and there is no hosted deployment yet, so nothing here is claimed for one.
+**Speaker notes:** These are numbers from real end-to-end runs, not projections, and the logs are in the repo under docs/evidence. Say the caveats once, plainly: the figures come from a handful of runs rather than a large sample, the browser-mic run used Chromium's fake capture device instead of a physical microphone, and the figures come from local runs rather than the hosted instance at https://clausecatcher.onrender.com.
 
 ---
 
@@ -140,7 +140,7 @@ actual text, page for page with `ClauseCatcher.pdf`; the speaker notes are what 
 
 **On slide:**
 - BUILT FOR — sales-ops teams running live calls; compliance teams who own the contract; $0.08–$0.15 API usage per call
-- NEXT — physical-mic hardware (browser path verified 17/17); a hosted, deployed instance; multiple contracts per call
+- NEXT — physical-mic hardware (browser path verified 17/17); multiple contracts per call; CRM and meeting-platform audio
 - The correction a rep hears is the contract itself, spoken while the call is still happening.
 - github.com/ishal1410/clausecatcher · Built solo for the AssemblyAI Voice Agent Hackathon
 

@@ -54,8 +54,12 @@ class SessionStore:
     # -- workspaces -------------------------------------------------------------
     def new_workspace(self) -> Workspace:
         ws = Workspace(workspace_id=secrets.token_urlsafe(32))
-        self.workspaces[ws.workspace_id] = ws
-        while len(self.workspaces) > self.max_workspaces:
+        # Evict BEFORE inserting. Inserting first meant the brand-new, still
+        # empty workspace was itself the first "empty" match below, so the
+        # loop picked it, hit the self-eviction guard, broke, and nothing was
+        # ever evicted once every older workspace held a contract - which is
+        # every real request. The cap silently stopped existing.
+        while len(self.workspaces) >= self.max_workspaces:
             # Evict empty workspaces first, oldest one, and only then fall back
             # to the oldest workspace overall. Straight LRU let anyone flush a
             # real user's uploaded contract: POST /api/contract/demo needs no
@@ -64,9 +68,8 @@ class SessionStore:
             # loaded" to the person who had just uploaded one. Same shape as
             # the session eviction below.
             victim = next((w for w in self.workspaces.values() if not w.contract), None) or next(iter(self.workspaces.values()))
-            if victim.workspace_id == ws.workspace_id:
-                break  # never evict the workspace we are handing back
             del self.workspaces[victim.workspace_id]
+        self.workspaces[ws.workspace_id] = ws
         return ws
 
     def get_workspace(self, workspace_id: str | None) -> Workspace | None:
@@ -132,6 +135,14 @@ def demo() -> None:
     for _ in range(10):
         flood.new_workspace()
     assert flood.get_workspace(keeper.workspace_id) is keeper, "a contract-bearing workspace was evicted"
+
+    # ...and the cap must still hold when EVERY workspace has a contract, which
+    # is what real traffic looks like. Preferring empty victims must not turn
+    # into never evicting at all: that is unbounded memory on an open endpoint.
+    capped = SessionStore(max_workspaces=10)
+    for _ in range(500):
+        capped.new_workspace().contract = [{"section_number": "3.1", "literal_text": "x" * 100}]
+    assert len(capped.workspaces) <= 10, f"cap defeated: holding {len(capped.workspaces)}"
     print("session_store.py demo: OK")
 
 

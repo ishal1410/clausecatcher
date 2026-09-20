@@ -46,7 +46,11 @@ days after you submit. A judge who clicks and sees a blank/loading page for
   exhausted), redeploy to Northflank Sandbox — free tier, *"Always-on-compute
   – no sleeping"* (<https://northflank.com/pricing>) — see `docs/DEPLOY.md`.
 
-### R-02 — No hosted URL at all on submission day · CRITICAL · infra
+### R-02 — No hosted URL at all on submission day · RESOLVED 2026-09-20 · infra
+
+**RESOLVED 2026-09-20: live at https://clausecatcher.onrender.com**, deployed with
+`tools/deploy/render_deploy.py` and verified by driving one real contradiction
+through the hosted app (4.7 s). The original text follows, for the record.
 
 As of this writing the Render account does not exist and nothing is
 deployed. lablab's form asks for *"a link that allows interaction with your
@@ -289,7 +293,7 @@ visitor if the image paths resolve on the remote.
 
 | Severity | Count | IDs |
 |---|---|---|
-| Critical | 2 | R-01, R-02 |
+| Critical | 1 | R-01 (R-02 resolved 2026-09-20) |
 | High | 4 | R-03, R-04, R-05, R-06 |
 | Medium | 5 | R-07, R-08, R-09, R-10, R-11 |
 | Low | 2 | R-12, R-13 |

@@ -105,6 +105,16 @@ report headline.
 
 ## 2. CRITICAL — the session dies and the cockpit keeps pretending it's live
 
+> **Partially fixed, and the earlier claim was too strong.** `11f5dc0` clears
+> `ws_attached` on disconnect, but `finish()` also calls `end_session()`, which
+> sets `ended_at`, and the connect guard rejects any session with `ended_at`
+> set. So reconnecting to the *same* session id still fails. What is actually
+> true: the `cc_ws` cookie survives, so the contract and consent are intact and
+> starting a fresh call is one click - the judge does not lose the upload flow.
+> The cockpit no longer claims to be live, which was the reported bug. Full
+> mid-call resumption is not implemented.
+
+
 **What the judge sees.** Three separate paths land here:
 
 - **Third visitor** (`CLAUSECATCHER_MAX_LIVE_WS=2`): server sends `demo busy, try again

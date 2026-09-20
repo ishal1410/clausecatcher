@@ -83,7 +83,7 @@ The browser-microphone path is verified end to end: on 2026-09-17 an automated r
 
 Each figure comes from a single run, so treat them as examples, not averages.
 
-Not yet verified: a deployed hosted instance. Nothing above is claimed for one.
+The numbers above were measured on local end-to-end runs, not on the hosted instance at https://clausecatcher.onrender.com.
 
 ## Screenshots
 

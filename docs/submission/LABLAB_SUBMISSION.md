@@ -56,10 +56,14 @@ Live end-to-end runs on 2026-09-15 and 2026-09-17, with real AssemblyAI and Gemi
 - Alert 4 to 6.5 seconds after the sentence ended, across five logged alerts: 4.0 s, 4.3 s, 5.6 s, 6.2 s and 6.49 s. The Voice Agent's own transcript of its reply matched the contract text exactly (similarity 1.0), which is the server's post-speech check. Alert to first spoken word: 375 ms.
 - A clause request for §4.2, picked from the cockpit rail, was read back correctly by voice.
 - About $0.08 to $0.15 per call by the app's own cost estimate ($0.0755 for 55 s, $0.1535 for 1:52). That estimate prices AssemblyAI by connection time at list rate and does not meter Gemini, so it is an estimate rather than a bill.
-- 151 backend tests pass (pytest server/).
+- Claim-check accuracy, measured 2026-09-18 on 32 labelled sentences against the demo contract: 14 of 14 contradictions caught, 0 false alarms, correct clause ID on every one, median 3.5 s. The sentences were written against this contract, so it measures the checker on its own fixture - the number that carries is the zero false alarms, because every failure path resolves to "unclear" by design.
+- One verdict and one clause ID per finalized sentence, by design, so a spoken alert always cites exactly one clause. A sentence that breaks two clauses at once flags one of them; multi-clause fan-out is a known gap.
+- 151 backend tests and 42 frontend tests pass.
 The browser-microphone path is verified end to end: an automated run on 2026-09-17 drove a real browser through getUserMedia, an AudioWorklet and 16 kHz PCM16 frames and passed all 17 of its live-path checks. The capture device was Chromium's fake audio device playing a WAV file, not physical microphone hardware. Every figure here comes from a single run, not an average.
 
-Not yet verified: the hosted deployment. We don't claim results for it.
+The hosted instance at https://clausecatcher.onrender.com was deployed and driven end to end on 2026-09-20: a contradiction was flagged in 4.7 s on the live app. The figures above were measured on local runs, not on the hosted instance.
+
+A note for anyone opening the link: it runs on Render's free tier, so the first request after an idle period takes about a minute to wake. No microphone is needed - click "Use the demo contract", start the call, and type a line into "Simulate rep line"; it runs the identical pipeline.
 
 WHO IT'S FOR
 Sales-ops and revenue-compliance teams at B2B companies whose reps quote pricing, renewal, data-retention or SLA terms on live calls. The first buyer is whoever owns contract risk today and learns about a bad promise only after the customer brings it up.

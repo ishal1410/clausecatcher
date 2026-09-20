@@ -23,7 +23,7 @@ Form text for every field: `docs/submission/LABLAB_SUBMISSION.md`.
 | 7 | Cover image: "PNG or JPG", "Recommended 16:9" | done | Upload `docs/submission/cover.png` (1920x1080 PNG). |
 | 8 | Video presentation: "A maximum 5-minute video in MP4 format" | done (upload pending) | `docs/submission/demo.mp4` is **4:20.8** (1920x1080, 25.6 MB, h264+aac). lablab's wording is a 5:00 cap and a rubric floor at 3:00; 3:30-4:30 was our own target band, and the cut sits inside it. The 2:54 product take now runs into three narrated closing cards - market sizing, why this is different, what's next - which also answers `COMPLIANCE.md` finding 10. Rebuild: `python tools/demo_video/append_closing.py`. One thing left: upload to Vimeo (privacy "Anyone") and replace `[VIMEO_URL]` with the plain vimeo.com/<id> link. |
 | 9 | Slide presentation, "PDF format" | done (upload pending) | Upload `docs/submission/ClauseCatcher.pdf` (11 pages, re-exported 2026-09-20 with the market slide). Both it and `SLIDES.md` say 151 tests, which matches the suite (151 passed, re-run 2026-09-20). The "81 tests" this row used to warn about appears nowhere in the repo. |
-| 10 | Public GitHub repository | done | https://github.com/ishal1410/clausecatcher is public (HTTP 200) and everything is pushed: `git rev-parse HEAD origin/main` matched at `a4077c4` on 2026-09-20, with a clean working tree. `967bb25` ships the five demo-day fixes from `DEMO_DAY_BUGS.md` (claim-check on the wire, onclose handling, mobile CommandBar, persistent mic-off caption, cold-start skeleton); verified 151 server tests, 33 frontend tests, `tsc -b && vite build`, and a local run serving health `ok`, SPA 200, WS `101` on an allowed origin and `403` on a foreign one. Open the repo logged out once and confirm the README images render. |
+| 10 | Public GitHub repository | done | https://github.com/ishal1410/clausecatcher is public (HTTP 200) and everything is pushed: `git rev-parse HEAD origin/main` matched at `1cf7ff6` on 2026-09-20, with a clean working tree. `967bb25` ships the five demo-day fixes from `DEMO_DAY_BUGS.md` (claim-check on the wire, onclose handling, mobile CommandBar, persistent mic-off caption, cold-start skeleton); verified 151 server tests, 42 frontend tests, `tsc -b && vite build`, and a local run serving health `ok`, SPA 200, WS `101` on an allowed origin and `403` on a foreign one. Open the repo logged out once and confirm the README images render. |
 | 11 | Demo application platform | done (text) | Type or pick `Render`. If the picker only offers Streamlit, Replit or Vercel, choose "Other" if it exists. |
 | 12 | Application URL ("a link that allows interaction with your prototype") | **done** | **https://clausecatcher.onrender.com** - deployed 2026-09-20 with `python tools/deploy/render_deploy.py`. Verified live, not just health-checked: `/api/health` ok twice (both fast, warm), WebSocket upgrade `101` on the service origin and `403` on a foreign one, and one real contradiction driven through the hosted app - the verdict tile went Listening -> **Off-contract in 4.7 s** with the clause read back, which is the only check that proves AssemblyAI, Gemini and the voice leg are all alive at once. Free tier sleeps after ~15 idle min, so wake it before judging. |
 | 13 | "MIT-compliant" submission | **done** | MIT `LICENSE` added at repo root; README License section updated. |
@@ -32,11 +32,10 @@ Form text for every field: `docs/submission/LABLAB_SUBMISSION.md`.
 
 ## Final order of work (with time estimates)
 
-Done already: MIT LICENSE (#13), everything pushed (#10), the video recorded (#8),
+Done already: MIT LICENSE (#13), everything pushed (#10), the app deployed and verified live (#12), the video recorded (#8),
 the deck and cover rebuilt with the corrected numbers (#7, #9), the browser-mic path
 verified (#14). What is left:
 
-1. Deploy to Render and smoke-test a live alert (#12): 45 min
 2. Upload the finished 4:20.8 `demo.mp4` to Vimeo (#8): 15 min — steps in `DEMO_NOTES.md`
 3. Skim the slide PDF once before uploading (#9): 5 min
 4. Fill in the form and submit (#3-7, #11, #15): 20 min
@@ -49,7 +48,7 @@ slot or live demo. Set `URL` once. Risks covered: `docs/submission/RISKS.md`
 R-01, R-03, R-04, R-09, R-10.
 
 ```bash
-URL=<your Render URL>    # no trailing slash; nothing is deployed yet
+URL=https://clausecatcher.onrender.com    # no trailing slash
 ```
 
 **1. Wake it and prove it's awake (~40 s of the 60).**
