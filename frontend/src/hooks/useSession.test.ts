@@ -60,3 +60,64 @@ describe('transcript reducer', () => {
     ])
   })
 })
+
+/**
+ * Session lifecycle — DEMO_DAY_BUGS.md finding 2. The socket closes (demo
+ * busy, 60 s idle, 7 min cap, restart) and the cockpit kept showing LIVE,
+ * a running timer and "Listening", because `ws.onclose` was a no-op and
+ * nothing ever set `connected` back to false.
+ */
+describe('session lifecycle', () => {
+  const report = {
+    contract_clauses_referenced: [],
+    contradictions: [],
+    transcript_count: 0,
+    started_at: '2026-09-17T10:00:00Z',
+    ended_at: '2026-09-17T10:00:16Z',
+    est_cost_usd: 0,
+    claim_check_calls: 0,
+    claim_check_errors: 0,
+  }
+  const ended = (reason: string, withReport = true) =>
+    ({ type: 'session_ended', reason, ...(withReport ? { report } : {}) }) as unknown as ServerMessage
+
+  it('marks the session ended when the socket closes', () => {
+    const open = reducer(initialState, { kind: 'connected' })
+    expect(open.connected).toBe(true)
+    const closed = reducer(open, { kind: 'disconnected' })
+    expect(closed.connected).toBe(false)
+    expect(closed.ended).toBe('closed')
+  })
+
+  it('reads the demo-busy close code so the judge is told why', () => {
+    const closed = reducer(reducer(initialState, { kind: 'connected' }), { kind: 'disconnected', code: 1013 })
+    expect(closed.ended).toBe('busy')
+  })
+
+  it('keeps the server-sent reason when the socket closes afterwards', () => {
+    const idle = apply([ended('idle')])
+    expect(idle.ended).toBe('idle')
+    expect(idle.report).toEqual(report)
+    expect(reducer(idle, { kind: 'disconnected' }).ended).toBe('idle')
+  })
+
+  it('carries a report-less end (demo busy) with its reason', () => {
+    expect(apply([ended('busy', false)]).ended).toBe('busy')
+  })
+
+  it('clears the ended state when a new socket opens', () => {
+    const restarted = reducer(apply([ended('time_limit')]), { kind: 'connected' })
+    expect(restarted.ended).toBeNull()
+    expect(restarted.connected).toBe(true)
+  })
+
+  it('stores the claim-check leg reported by status', () => {
+    const state = apply([{ type: 'status', stt: 'connected', voice: 'disabled', claim_check: 'disabled' } as unknown as ServerMessage])
+    expect(state.status).toEqual({ stt: 'connected', voice: 'disabled', claim_check: 'disabled' })
+  })
+
+  it('surfaces check_error to the user', () => {
+    const state = apply([{ type: 'check_error', message: 'Contract check unavailable.' } as unknown as ServerMessage])
+    expect(state.error).toBe('Contract check unavailable.')
+  })
+})

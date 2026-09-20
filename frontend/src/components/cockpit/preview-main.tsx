@@ -23,7 +23,8 @@ const CLAUSES: Clause[] = [
 
 interface FakeState {
   connected: boolean
-  status: { stt: string; voice: string } | null
+  ended: import('../../hooks/useSession').EndReason | null
+  status: { stt: string; voice: string; claim_check?: 'ready' | 'disabled' | 'error' } | null
   transcript: TranscriptLine[]
   alerts: AlertRecord[]
   clauses: Clause[]
@@ -34,6 +35,7 @@ interface FakeState {
 
 const initial: FakeState = {
   connected: false,
+  ended: null,
   status: null,
   transcript: [],
   alerts: [],
@@ -68,7 +70,7 @@ function useFakeSession() {
       t(at, () => dispatch({ pushTranscript: { text: partial, final: false } }))
       t(at + 600, () => dispatch({ replaceLastTranscript: { text: final, final: true } }))
     }
-    t(200, () => dispatch({ connected: true, status: { stt: 'connected', voice: 'connected' } }))
+    t(200, () => dispatch({ connected: true, status: { stt: 'connected', voice: 'connected', claim_check: 'ready' } }))
     say(600, 'Thanks for making time today, I', 'Thanks for making time today, I know renewal is coming up.')
     say(2200, 'Your fifty seats stay locked', 'Your fifty seats stay locked at the flat $48,000 rate.')
     say(4000, 'Support is P1 within four', 'Support is P1 within four business hours, Monday to Friday.')

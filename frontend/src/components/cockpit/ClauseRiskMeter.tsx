@@ -23,7 +23,7 @@ export const ClauseRiskMeter = memo(function ClauseRiskMeter({ clauses, alerts, 
   const current = alerts[0]
 
   return (
-    <section className="shrink-0 border-t border-border/60 bg-bg-base/60 px-5 pb-4 pt-3">
+    <section aria-label="Clause watchlist" className="shrink-0 border-t border-border/60 bg-bg-base/60 px-5 pb-4 pt-3">
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted">Clause watchlist</h2>
         <span className="font-mono text-[11px] tabular-nums text-text-muted">
@@ -34,7 +34,7 @@ export const ClauseRiskMeter = memo(function ClauseRiskMeter({ clauses, alerts, 
       {clauses.length === 0 ? (
         <p className="text-[13px] text-text-muted">No contract loaded.</p>
       ) : (
-        <ul className="grid max-h-[132px] grid-cols-2 gap-2 overflow-y-auto">
+        <ul className="grid grid-cols-1 gap-2 sm:max-h-[132px] sm:grid-cols-2 sm:overflow-y-auto">
           {clauses.map((c) => {
             const status: Status = contradicted.has(c.section_number) ? 'contradicted' : asked.has(c.section_number) ? 'referenced' : 'watching'
             const { label, Icon, tile, text } = STATUS[status]

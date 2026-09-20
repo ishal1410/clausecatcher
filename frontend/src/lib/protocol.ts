@@ -22,10 +22,25 @@ export type ClientMessage =
 
 // -- server -> client -----------------------------------------------------
 
+/** The three upstream legs. `claim_check` is 'ready' ONLY when a real Gemini
+ *  checker is configured and not killed by CLAUSECATCHER_PAID_DISABLED;
+ *  'disabled' means every line goes unchecked, 'error' means configured but
+ *  out of budget (process call cap). Never infer it from socket state. */
 export interface StatusMessage {
   type: 'status'
   stt: 'disabled' | 'connected' | 'error'
   voice: 'disabled' | 'connected' | 'error'
+  claim_check: ClaimCheckState
+}
+
+export type ClaimCheckState = 'ready' | 'disabled' | 'error'
+
+/** A line was NOT verified (checker off, failed, quota/cap reached).
+ *  Server-rate-limited to at most one per 20 s per session; the message is
+ *  human-readable and carries no upstream error text. */
+export interface CheckErrorMessage {
+  type: 'check_error'
+  message: string
 }
 
 export interface TranscriptMessage {
@@ -64,6 +79,9 @@ export interface ErrorMessage {
 }
 
 export interface Report {
+  /** 'disabled'/'error' here means 0 contradictions proves nothing: the lines
+   *  were never checked. Only 'ready' makes "clean call" an honest headline. */
+  claim_check_state: ClaimCheckState
   contract_clauses_referenced: string[]
   contradictions: Array<{
     sentence: string
@@ -93,4 +111,5 @@ export type ServerMessage =
   | AgentSpeakingMessage
   | AgentAudioMessage
   | ErrorMessage
+  | CheckErrorMessage
   | SessionEndedMessage

@@ -21,24 +21,26 @@ Form text for every field: `docs/submission/LABLAB_SUBMISSION.md`.
 | 5 | Long description, "at least 100 words" | done (~760 words) | Paste the whole code block. If the editor supports headings, turn the CAPS headings into headings. |
 | 6 | Technology & category tags | needs user login | Pick from the tag picker, in the priority order in LABLAB_SUBMISSION.md. Only use tags the picker actually offers. |
 | 7 | Cover image: "PNG or JPG", "Recommended 16:9" | done | Upload `docs/submission/cover.png` (1920x1080 PNG). |
-| 8 | Video presentation: "A maximum 5-minute video in MP4 format" | pending | Record from `DEMO_SCRIPT.md` and export an MP4 of 5:00 or less. Upload it to Vimeo (privacy "Anyone"). Replace `[VIMEO_URL]` with the plain vimeo.com/<id> link. If the form asks for a file, upload the MP4 itself. |
-| 9 | Slide presentation, "PDF format" | done (upload pending) | Upload `docs/submission/ClauseCatcher.pdf` (10 pages). Its slide 9 already says 136 tests. The older outline `SLIDES.md` still says 81, which is harmless but stale. |
-| 10 | Public GitHub repository | done, but local work isn't pushed | https://github.com/ishal1410/clausecatcher is public (HTTP 200). Several local files aren't pushed yet: `docs/screenshots/`, `cover.png`, `cover.html`, `ClauseCatcher.pdf`, `CHECKLIST.md`, the README and LABLAB_SUBMISSION.md edits, `tools/`, and uncommitted changes in `server/main.py`, `server/tests/test_session_flow.py` and `frontend/src/hooks/useSession.ts`. Review, commit and push them. The README screenshots don't show on GitHub until you do. |
+| 8 | Video presentation: "A maximum 5-minute video in MP4 format" | recorded, upload pending | `docs/submission/demo.mp4` is shipped (2:54, 1920x1080, 22.4 MB; see `DEMO_NOTES.md`). Two things left: pad it to 3:30-4:30 first (lablab's rubric scores anything under 3:00 in its lower band, see `COMPLIANCE.md` finding 9 and the padding plan in `DEMO_NOTES.md`), then upload to Vimeo (privacy "Anyone") and replace `[VIMEO_URL]` with the plain vimeo.com/<id> link. |
+| 9 | Slide presentation, "PDF format" | done (upload pending) | Upload `docs/submission/ClauseCatcher.pdf` (10 pages). Both it and `SLIDES.md` say 136 tests, which matches the suite. The "81 tests" this row used to warn about appears nowhere in the repo. |
+| 10 | Public GitHub repository | done | https://github.com/ishal1410/clausecatcher is public (HTTP 200) and everything is pushed: `git rev-parse HEAD origin/main` matched at `a629536` on 2026-09-17, with a clean working tree. Open the repo logged out once and confirm the README images render. |
 | 11 | Demo application platform | done (text) | Type or pick `Render`. If the picker only offers Streamlit, Replit or Vercel, choose "Other" if it exists. |
 | 12 | Application URL ("a link that allows interaction with your prototype") | pending | Deploy using `docs/DEPLOY.md`: Render dashboard, then **New +**, then **Web Service**, connect the GitHub repo, and use Docker from `render.yaml`. Set `ASSEMBLYAI_API_KEY` and `GEMINI_API_KEY` in Render's Environment tab. Open the URL and drive a real alert. Then replace `[APP_URL]`. |
 | 13 | "MIT-compliant" submission | **done** | MIT `LICENSE` added at repo root; README License section updated. |
-| 14 | Browser-mic live path verified end to end | pending | Not verified yet. Every submission text says so. If you verify it before the deadline, add one measured line to LABLAB_SUBMISSION.md and the README. |
+| 14 | Browser-mic live path verified end to end | done | Verified 2026-09-17 by `tools/e2e_mic/run_mic_e2e.py`: a real browser, getUserMedia, an AudioWorklet and 16 kHz PCM16 frames through the full pipeline, 17 of 17 live-path checks. The capture device was Chromium's fake audio device playing a WAV, not a physical microphone, and the README and LABLAB_SUBMISSION say so. Physical mic hardware is still untested. Log: `docs/evidence/e2e_mic_run-live.json`. |
 | 15 | Submit | needs user login | On the event dashboard, open your team's project submission form. Paste the fields, upload the cover, video and PDF, and submit. Afterwards, open the public project page and check that every field shows up. |
 
 ## Final order of work (with time estimates)
 
-1. Decide on the license and add the MIT LICENSE (#13): 5 min
-2. Commit and push the pending work (#10): 10 min
-3. Deploy to Render and smoke-test a live alert (#12): 45 min
-4. Record, export and upload the video (#8): 2-3 h
-5. Skim the slide PDF once before uploading (#9): 5 min
-6. Fill in the form and submit (#3-7, #11, #15): 20 min
-7. Wake the Render app right before judging: 1 min
+Done already: MIT LICENSE (#13), everything pushed (#10), the video recorded (#8),
+the deck and cover rebuilt with the corrected numbers (#7, #9), the browser-mic path
+verified (#14). What is left:
+
+1. Deploy to Render and smoke-test a live alert (#12): 45 min
+2. Pad the video to 3:30-4:30 and upload it to Vimeo (#8): 1-2 h — the plan is in `DEMO_NOTES.md`
+3. Skim the slide PDF once before uploading (#9): 5 min
+4. Fill in the form and submit (#3-7, #11, #15): 20 min
+5. Wake the Render app right before judging: 1 min
 
 ## 60 seconds before judging
 
@@ -47,7 +49,7 @@ slot or live demo. Set `URL` once. Risks covered: `docs/submission/RISKS.md`
 R-01, R-03, R-04, R-09, R-10.
 
 ```bash
-URL=https://clausecatcher.onrender.com    # no trailing slash
+URL=<your Render URL>    # no trailing slash; nothing is deployed yet
 ```
 
 **1. Wake it and prove it's awake (~40 s of the 60).**

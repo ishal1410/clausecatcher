@@ -34,7 +34,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from server.clauses import ClauseExtractionError, extract_clauses_safe, load_demo_contract
 from server.session_store import SessionState, SessionStore, Workspace
-from server.claim_check import get_claim_checker as _default_claim_checker_factory
+from server.claim_check import checker_state, get_claim_checker as _default_claim_checker_factory
 
 logger = logging.getLogger("clausecatcher")
 
@@ -46,6 +46,7 @@ MAX_PDF_BYTES = int(os.environ.get("CLAUSECATCHER_MAX_PDF_BYTES", 5 * 1024 * 102
 
 # Per finalized turn behavior tuning (see WS protocol behavior spec).
 ALERT_DEDUPE_S = 20.0
+CHECK_ERROR_COOLDOWN_S = 20.0  # at most one check_error frame per session per window
 CLAIM_CHECK_TIMEOUT_S = 15.0  # must exceed claim_check.TIMEOUT_MS (12 s; Gemini minimum is 10 s)
 SPEAK_DRAIN_TIMEOUT_S = 5.0
 MIN_CLAIM_CHECK_WORDS = 4  # skip claim-check on very short fragments
@@ -291,8 +292,15 @@ async def start_session(workspace: Workspace | None = Depends(existing_workspace
     return {"session_id": session.session_id}
 
 
-def _report(session: SessionState) -> dict:
+def _report(session: SessionState, claim_check_state: str | None = None) -> dict:
+    # claim_check_state tells "0 contradictions because every line was checked
+    # and was clean" apart from "0 contradictions because nothing was checked".
+    # Sockets pass the state their own checker had; REST reads it live.
+    state = claim_check_state or checker_state()
+    if session.claim_check_errors:
+        state = "error"
     return {
+        "claim_check_state": state,
         "contract_clauses_referenced": sorted(session.referenced_sections),
         "contradictions": session.contradictions,
         "transcript_count": session.transcript_count,
@@ -375,6 +383,19 @@ async def session_ws(
     stt: Any = None
     speaker: Any = None
     max_checks = _env_num("CLAUSECATCHER_MAX_CHECKS", 40)
+    # computed once, before anything can fail: finish() closes over it
+    claim_check_status = checker_state(claim_checker)
+    last_check_error_at = float("-inf")
+
+    async def send_check_error(message: str) -> None:
+        """Tell the client a line was NOT checked. Rate-limited so a dead
+        Gemini leg can't spam one frame per finalized turn."""
+        nonlocal last_check_error_at
+        now = time.monotonic()
+        if now - last_check_error_at < CHECK_ERROR_COOLDOWN_S:
+            return
+        last_check_error_at = now
+        await send({"type": "check_error", "message": message})
 
     async def _speak_alert(record: dict, clause: dict) -> None:
         try:
@@ -395,9 +416,14 @@ async def session_ws(
         # record transcript regardless of claim-check outcome
         session.transcript_count += 1
         sentence = sentence[:MAX_SENTENCE_CHARS]
-        if len(sentence.split()) < MIN_CLAIM_CHECK_WORDS or session.claim_check_calls >= max_checks:
+        if len(sentence.split()) < MIN_CLAIM_CHECK_WORDS:
+            return
+        if session.claim_check_calls >= max_checks:
+            await send_check_error("Claim-check limit reached for this call - later lines were not verified.")
             return
         session.claim_check_calls += 1
+        if claim_check_status != "ready":
+            await send_check_error("Claim check is off - lines are not being verified against the contract.")
         loop = asyncio.get_event_loop()
         try:
             result = await asyncio.wait_for(
@@ -407,9 +433,13 @@ async def session_ws(
         except Exception:  # noqa: BLE001 - checker must never take the socket down
             session.claim_check_errors += 1
             logger.exception("claim_checker failed for session %s", session_id)
+            # generic text: upstream error strings never reach the browser
+            await send_check_error("Claim check is unavailable right now - this line was not verified.")
             return
         if result.get("error"):
             session.claim_check_errors += 1
+            logger.warning("claim check error for session %s: %s", session_id, result["error"])
+            await send_check_error("Claim check is unavailable right now - this line was not verified.")
         if result.get("verdict") != "contradiction":
             return
         clause = session.get_clause(result.get("clause_id") or "")
@@ -464,7 +494,7 @@ async def session_ws(
     async def finish() -> dict:
         nonlocal cleaned
         if cleaned:
-            return _report(session)
+            return _report(session, claim_check_status)
         cleaned = True
         if speak_tasks:
             _, pending = await asyncio.wait(speak_tasks, timeout=SPEAK_DRAIN_TIMEOUT_S)
@@ -486,7 +516,7 @@ async def session_ws(
         session.est_cost_usd += cost
         store.spent_usd += cost
         store.end_session(session)
-        return _report(session)
+        return _report(session, claim_check_status)
 
     try:
         # -- set up STT + voice (concurrently) -------------------------------
@@ -526,7 +556,7 @@ async def session_ws(
         if api_key and paid_ok:
             await asyncio.gather(_setup_stt(), _setup_voice())
 
-        await send({"type": "status", "stt": stt_status, "voice": voice_status})
+        await send({"type": "status", "stt": stt_status, "voice": voice_status, "claim_check": claim_check_status})
 
         deadline = time.monotonic() + _env_num("CLAUSECATCHER_SESSION_CAP_S", 420)
         idle_s = _env_num("CLAUSECATCHER_IDLE_TIMEOUT_S", 60)

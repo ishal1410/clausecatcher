@@ -254,6 +254,23 @@ def get_claim_checker() -> Callable[[str, list[dict]], dict]:
     return _stub_claim_checker
 
 
+def checker_state(checker: Optional[Callable[[str, list[dict]], dict]] = None) -> str:
+    """"ready" | "disabled" | "error" for the claim-check leg -- without calling it.
+
+    The one source of truth for the `status` frame's claim_check field and the
+    session report's claim_check_state, so a green pill can never mean "the
+    socket is open" while the stub is what actually answers every line.
+    "error" = configured but out of budget (process call cap reached).
+    """
+    if checker is None:
+        checker = get_claim_checker()
+    if checker is _stub_claim_checker:
+        return "disabled"
+    if checker is check_claim and _stats["calls"] >= _max_calls():
+        return "error"
+    return "ready"  # injected checker (tests/fakes) or a live check_claim
+
+
 def demo() -> None:
     """ponytail self-check: no network, uses a stub client."""
 
@@ -316,10 +333,12 @@ def demo() -> None:
     old_key = os.environ.pop("GEMINI_API_KEY", None)
     try:
         assert get_claim_checker() is _stub_claim_checker
+        assert checker_state() == "disabled"
         os.environ["CLAUSECATCHER_CLAIM_CHECK"] = "gemini"
         assert get_claim_checker() is _stub_claim_checker  # still no key -> stub
         os.environ["GEMINI_API_KEY"] = "fake-for-demo-only"
         assert get_claim_checker() is check_claim
+        assert checker_state() == "ready"  # no call made
         # kill switch beats an otherwise fully-enabled config
         os.environ["CLAUSECATCHER_PAID_DISABLED"] = "1"
         assert get_claim_checker() is _stub_claim_checker

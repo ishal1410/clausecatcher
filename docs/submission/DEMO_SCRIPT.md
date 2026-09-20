@@ -7,7 +7,7 @@ Target length: 2:30-3:00. Written for a single screen-recorded take with voiceov
 - Record at 1920×1080, 30fps, in OBS. Use a dedicated "Display Capture" or windowed browser source sized to exactly 1920×1080 so nothing gets scaled at export.
 - Close every other app, silence notifications (Windows Focus Assist on), and hide the taskbar before rolling.
 - Record screen and voiceover as separate takes if that's easier to get clean: capture the app interaction silently first, then narrate over it in a second pass. Keep them in sync by talking through the actions out loud once, off-mic, before the real narration take, so the pacing matches.
-- Do at least two full run-throughs of the cockpit section before recording. The alert timing (~2 seconds from sentence to card) needs to feel natural in narration, not rushed or padded.
+- Do at least two full run-throughs of the cockpit section before recording. The alert timing (about five seconds from sentence to card, 4 to 6.5 s across the logged runs) needs to feel natural in narration, not rushed or padded.
 - Zoom the browser to 100% (not 125%+) so the three-pane cockpit layout doesn't crop at 1080p.
 - Export at a bitrate high enough that the mono voice-orb animation and the underline sweep on the transcript don't compress into mush: 8 Mbps or higher.
 
@@ -28,7 +28,7 @@ Target length: 2:30-3:00. Written for a single screen-recorded take with voiceov
 | 1:28-1:35 | "Spoken verbatim ✓" badge fades in under the quote | "Verified against the contract text after it's spoken, not just assumed." | Zoom or hold on this badge for a beat. |
 | 1:35-1:45 | Second rep line lands clean (no alert), then a false "24/7 on Standard" line triggers a second alert on §6.1 | "This isn't one canned trigger. A second, unrelated false claim gets caught the same way." | Compresses two beats. Cut if time is tight; this is the first thing to shorten. |
 | 1:45-1:55 | Click command bar, select clause §4.2 | "A manager on the call can ask about any clause directly." | Type or select quickly. |
-| 1:55-2:05 | Risk-meter dot for §4.2 lights up, voice orb speaks again | "Same mechanism, same guarantee: the answer is the contract's own words, spoken aloud." | |
+| 1:55-2:05 | Risk-meter dot for §4.2 lights up, voice orb speaks again | "Same mechanism, same check: the answer is the contract's own words, spoken aloud." | |
 | 2:05-2:12 | Click "End call" | (silent transition) | |
 | 2:12-2:28 | Report screen: score ring counts up, contradiction timeline, facts row (cost, calls, errors, transcript count) | "At the end of the call, a report: what was said, what was caught, and what the API time actually cost." | Let the ring animation finish before cutting. |
 | 2:28-2:40 | Cut back to landing page or a static ClauseCatcher wordmark | "ClauseCatcher: the correction the rep actually hears, in the rep's own words back at them, straight from the contract." | Closing line, no call to action needed beyond the product itself. |

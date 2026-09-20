@@ -18,12 +18,26 @@ import type { ComponentType } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import * as api from './lib/api'
 import { useSession } from './hooks/useSession'
+import type { EndReason } from './hooks/useSession'
 import type { Clause } from './lib/protocol'
 import { Card, StatusDot, ToastStack, pageTransition } from './components/ui'
 import type { ToastItem } from './components/ui'
 import { Report } from './components/report/Report'
 
 type Page = 'landing' | 'setup' | 'cockpit' | 'report'
+
+/**
+ * Why the call is over, in the judge's words. The server ends sessions on its
+ * own (demo-busy cap, 60 s idle, 7 min hard cap) and the cockpit used to keep
+ * showing LIVE with a running timer — DEMO_DAY_BUGS.md finding 2.
+ */
+const END_COPY: Record<EndReason, string> = {
+  idle: 'Session ended — the server heard nothing for a while and closed the call.',
+  time_limit: 'Session ended — this demo caps a call at 7 minutes.',
+  stopped: 'Session ended.',
+  busy: 'The demo is busy — the maximum number of live calls is already running. Try again in a minute.',
+  closed: 'Connection to the ClauseCatcher server was lost, so the call is over.',
+}
 
 // -- guarded loaders for sibling-team screens ------------------------------
 
@@ -131,6 +145,12 @@ export default function App() {
     }, 1500)
   }, [session, attemptReportFallback])
 
+  // A server-initiated end (idle, time cap, stop) delivers the report over the
+  // socket. Show it instead of waiting for an "End call" click that will never come.
+  useEffect(() => {
+    if (page === 'cockpit' && session.state.report) setPage('report')
+  }, [page, session.state.report])
+
   const handleNewSession = useCallback(() => {
     setSessionId(null)
     setFallbackReport(null)
@@ -172,6 +192,22 @@ export default function App() {
             )}
             {page === 'cockpit' && (
               <motion.div key="cockpit" {...pageTransition}>
+                {/* Persistent, not a 5 s toast: the session really is over and
+                    nothing typed below this point reaches the server. */}
+                {session.state.ended && (
+                  <div
+                    role="alert"
+                    className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b border-risk-medium/40 bg-risk-medium/10 px-4 py-2.5 text-center text-[13px] font-medium text-risk-medium-text"
+                  >
+                    <span>{END_COPY[session.state.ended]}</span>
+                    <button
+                      onClick={handleNewSession}
+                      className="rounded-full border border-risk-medium/50 px-3 py-1 text-[12px] font-semibold transition-colors duration-150 hover:bg-risk-medium/15"
+                    >
+                      Start a new session
+                    </button>
+                  </div>
+                )}
                 <Suspense fallback={null}>
                   <Cockpit session={session} clauses={clauses} onEnd={handleEnd} />
                 </Suspense>

@@ -178,13 +178,13 @@ class WebSocketAbuseTest(_Base):
         with mock.patch.dict(os.environ, env):
             with self.a.websocket_connect(f"/ws/session/{self.ready(self.a)}") as ws:
                 frames = [ws.receive_json(), ws.receive_json()]
-        self.assertIn({"type": "status", "stt": "disabled", "voice": "disabled"}, frames)
+        self.assertIn({"type": "status", "stt": "disabled", "voice": "disabled", "claim_check": "disabled"}, frames)
         main.store.spent_usd = 5.0
         env = {"ASSEMBLYAI_API_KEY": "fake-never-used", "CLAUSECATCHER_BUDGET_USD": "3"}
         with mock.patch.dict(os.environ, env):
             with self.a.websocket_connect(f"/ws/session/{self.ready(self.a)}") as ws:
                 frames = [ws.receive_json(), ws.receive_json()]
-        self.assertIn({"type": "status", "stt": "disabled", "voice": "disabled"}, frames)
+        self.assertIn({"type": "status", "stt": "disabled", "voice": "disabled", "claim_check": "disabled"}, frames)
         self.assertEqual(opened, [])
 
     def test_claim_checks_truncated_and_capped_per_session(self) -> None:
@@ -197,7 +197,16 @@ class WebSocketAbuseTest(_Base):
                 for _ in range(4):
                     ws.send_json({"type": "transcript", "text": "word " * 500})
                 ws.send_json({"type": "stop"})
-                report = ws.receive_json()["report"]
+                # lines 3-4 were skipped by the cap: the client is told so
+                # (once per window) before the session_ended frame.
+                frames = []
+                while True:
+                    msg = ws.receive_json()
+                    frames.append(msg)
+                    if msg["type"] == "session_ended":
+                        break
+                report = msg["report"]
+        self.assertEqual([f["type"] for f in frames], ["check_error", "session_ended"])
         self.assertEqual(len(calls), 2)
         self.assertTrue(all(len(c) <= 400 for c in calls))
         self.assertEqual(report["claim_check_calls"], 2)

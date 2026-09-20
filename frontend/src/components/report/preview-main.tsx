@@ -33,6 +33,7 @@ const fakeReport: ReportData = {
   est_cost_usd: 0.0842,
   claim_check_calls: 47,
   claim_check_errors: 1,
+  claim_check_state: 'ready',
 }
 
 const state = new URLSearchParams(location.search).get('state')

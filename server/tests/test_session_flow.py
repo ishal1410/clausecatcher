@@ -159,7 +159,7 @@ class SessionFlowTest(unittest.TestCase):
         self._wire_fakes()
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
             status = ws.receive_json()
-        self.assertEqual(status, {"type": "status", "stt": "connected", "voice": "connected"})
+        self.assertEqual(status, {"type": "status", "stt": "connected", "voice": "connected", "claim_check": "ready"})
 
     def test_binary_audio_frames_reach_fake_stt(self) -> None:
         session_id = self._ready_session()
@@ -275,7 +275,9 @@ class SessionFlowTest(unittest.TestCase):
         os.environ.pop("ASSEMBLYAI_API_KEY", None)
         with self.client.websocket_connect(f"/ws/session/{session_id}") as ws:
             status = ws.receive_json()
-            self.assertEqual(status, {"type": "status", "stt": "disabled", "voice": "disabled"})
+            self.assertEqual(
+                status, {"type": "status", "stt": "disabled", "voice": "disabled", "claim_check": "ready"}
+            )
             ws.send_json({"type": "transcript", "text": "we'll knock ten percent off"})
             alert = ws.receive_json()
         self.assertEqual(alert["type"], "alert")

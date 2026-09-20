@@ -43,7 +43,7 @@ export const TranscriptPane = memo(function TranscriptPane({ transcript, alerts 
   }, [transcript.length, lastText])
 
   return (
-    <section className="flex h-full min-w-0 flex-col border-r border-border/60 bg-bg-base">
+    <section aria-label="Live transcript" className="flex h-full min-w-0 flex-col border-r border-border/60 bg-bg-base">
       <div className="flex h-11 shrink-0 items-center justify-between border-b border-border/60 px-4">
         <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-muted">
           <Radio size={13} strokeWidth={1.75} />

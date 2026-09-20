@@ -21,7 +21,7 @@ import type { ReactNode } from 'react'
 import type { Report as ReportData } from '../../lib/protocol'
 import { Button, Card, Chip, duration, easing, rise, spring, stagger } from '../ui'
 import type { ChipTone } from '../ui'
-import { callSpan, flagsBySection, formatClock, positionPct, scoreBand, scoreOf } from './metrics'
+import { callSpan, claimCheckState, flagsBySection, formatClock, positionPct, scoreBand, scoreOf } from './metrics'
 import type { ScoreBand } from './metrics'
 
 export interface ReportProps {
@@ -35,6 +35,21 @@ const bandStyle: Record<ScoreBand, { ring: string; text: string; chip: ChipTone;
   clean: { ring: 'var(--safe)', text: 'text-safe-text', chip: 'safe', label: 'Clean call', icon: <ShieldCheck size={13} aria-hidden /> },
   review: { ring: 'var(--brand-light)', text: 'text-brand-light', chip: 'brand', label: 'Needs review', icon: <ShieldAlert size={13} aria-hidden /> },
   risk: { ring: 'var(--risk-high)', text: 'text-risk-high-text', chip: 'risk-high', label: 'High risk', icon: <ShieldX size={13} aria-hidden /> },
+  // DEMO_DAY_BUGS.md finding 1: with the claim checker off there is no score to
+  // show, and "clean call / on-contract" would be a claim the app never earned.
+  unchecked: {
+    ring: 'var(--risk-medium)',
+    text: 'text-risk-medium-text',
+    chip: 'risk-medium',
+    label: 'Not checked',
+    icon: <TriangleAlert size={13} aria-hidden />,
+  },
+}
+
+const uncheckedReason: Record<'disabled' | 'error' | 'ready', string> = {
+  disabled: 'The contract checker was switched off for this call, so no line was compared against the contract.',
+  error: 'The contract checker failed during this call, so the lines below were never compared against the contract.',
+  ready: '',
 }
 
 const sectionTitle = 'font-display text-[18px] font-semibold tracking-[-0.01em] text-text-primary'
@@ -93,9 +108,23 @@ function ScoreRing({ score, band }: { score: number; band: ScoreBand }) {
   )
 }
 
+/** Stands in for the score ring when there is no score to report. */
+function NoScoreRing() {
+  return (
+    <div className="relative grid h-44 w-44 shrink-0 place-items-center" aria-hidden>
+      <div className="absolute inset-6 rounded-full opacity-20 blur-2xl" style={{ background: 'var(--risk-medium)' }} />
+      <div className="relative grid h-[152px] w-[152px] place-items-center rounded-full border-8 border-dashed border-border">
+        <ShieldAlert size={40} strokeWidth={1.5} className="text-risk-medium-text" />
+      </div>
+    </div>
+  )
+}
+
 function Hero({ report }: { report: ReportData }) {
+  const check = claimCheckState(report)
   const score = scoreOf(report)
-  const band = scoreBand(score, report.contradictions.length)
+  const band = scoreBand(score, report.contradictions.length, check)
+  const unchecked = band === 'unchecked'
   const n = report.contradictions.length
   const { start, span } = callSpan(report)
   const started = new Date(start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
@@ -103,22 +132,24 @@ function Hero({ report }: { report: ReportData }) {
   const meta: Array<[string, string]> = [
     ['Duration', formatClock(span)],
     ['Started', started],
-    ['Lines checked', String(report.transcript_count)],
+    [unchecked ? 'Lines heard' : 'Lines checked', String(report.transcript_count)],
   ]
 
   return (
     <motion.header variants={rise} className="flex flex-col items-center gap-8 text-center sm:flex-row sm:gap-12 sm:text-left">
-      <ScoreRing score={score} band={band} />
+      {unchecked ? <NoScoreRing /> : <ScoreRing score={score} band={band} />}
       <div className="min-w-0 space-y-4">
         <Chip tone={bandStyle[band].chip} icon={bandStyle[band].icon}>
           {bandStyle[band].label}
         </Chip>
         <div className="space-y-2">
           <h1 id="report-title" className="font-display text-[40px] font-bold leading-[1.1] tracking-[-0.03em] text-text-primary">
-            {score}% of lines on-contract
+            {unchecked ? 'These lines were not checked' : `${score}% of lines on-contract`}
           </h1>
           <p className="text-[15px] leading-relaxed text-text-secondary">
-            {n === 0 ? 'No contradictions' : `${n} contradiction${n === 1 ? '' : 's'}`} caught out of {report.transcript_count} lines.
+            {unchecked
+              ? uncheckedReason[check]
+              : `${n === 0 ? 'No contradictions' : `${n} contradiction${n === 1 ? '' : 's'}`} caught out of ${report.transcript_count} lines.`}
           </p>
         </div>
         <dl className="flex flex-wrap justify-center gap-x-6 gap-y-2 sm:justify-start">
@@ -171,6 +202,7 @@ function ContradictionCard({ c, index, clock }: { c: Contradiction; index: numbe
 function Timeline({ report }: { report: ReportData }) {
   const reduce = useReducedMotion()
   const baseId = useId()
+  const unchecked = claimCheckState(report) !== 'ready'
   const [active, setActive] = useState<number | null>(null)
   const { start, span } = callSpan(report)
   const items = report.contradictions.map((c, i) => {
@@ -193,7 +225,7 @@ function Timeline({ report }: { report: ReportData }) {
           Contradiction timeline
         </h2>
         <span className="font-mono text-[12px] tabular-nums text-text-muted">
-          {empty ? 'none flagged' : `${items.length} flagged`}
+          {empty ? (unchecked ? 'not checked' : 'none flagged') : `${items.length} flagged`}
         </span>
       </div>
 
@@ -202,12 +234,14 @@ function Timeline({ report }: { report: ReportData }) {
           <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-border/70" />
           {/* playback sweep: scaleX, never width */}
           <motion.div
-            className={`absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 origin-left rounded-full ${empty ? 'bg-safe' : 'bg-text-muted/45'}`}
+            className={`absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 origin-left rounded-full ${
+              empty && !unchecked ? 'bg-safe' : 'bg-text-muted/45'
+            }`}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: duration.count, ease: easing.outExpo, delay: 0.35 }}
           />
-          {empty && (
+          {empty && !unchecked && (
             <span className="absolute right-0 top-1/2 grid h-6 w-6 -translate-y-1/2 translate-x-1/2 place-items-center rounded-full border border-safe/50 bg-bg-base text-safe-text">
               <Check size={13} aria-hidden />
             </span>
@@ -266,9 +300,16 @@ function Timeline({ report }: { report: ReportData }) {
       </div>
 
       {empty ? (
-        <p className="flex items-center gap-2 text-[14px] text-safe-text">
-          <ShieldCheck size={16} aria-hidden /> No contradictions in this call.
-        </p>
+        unchecked ? (
+          <p className="flex items-center gap-2 text-[14px] text-risk-medium-text">
+            <TriangleAlert size={16} aria-hidden /> Nothing was checked against the contract, so nothing could be flagged. An empty
+            timeline here is not a clean call.
+          </p>
+        ) : (
+          <p className="flex items-center gap-2 text-[14px] text-safe-text">
+            <ShieldCheck size={16} aria-hidden /> No contradictions in this call.
+          </p>
+        )
       ) : (
         <motion.ol variants={stagger} className="space-y-3">
           {items.map(({ c, i, clock }) => (
@@ -301,6 +342,7 @@ function Timeline({ report }: { report: ReportData }) {
 
 function Clauses({ report }: { report: ReportData }) {
   const baseId = useId()
+  const unchecked = claimCheckState(report) !== 'ready'
   const flags = useMemo(() => flagsBySection(report), [report])
   const sections = useMemo(() => [...new Set([...report.contract_clauses_referenced, ...flags.keys()])], [report, flags])
   if (sections.length === 0) return null
@@ -310,7 +352,11 @@ function Clauses({ report }: { report: ReportData }) {
       <h2 id={baseId} className={sectionTitle}>
         Clauses checked
       </h2>
-      <p className="text-[14px] text-text-muted">Every clause this call was measured against. Flagged ones were contradicted at least once.</p>
+      <p className="text-[14px] text-text-muted">
+        {unchecked
+          ? 'The clauses loaded for this call. None of them were actually compared against what was said.'
+          : 'Every clause this call was measured against. Flagged ones were contradicted at least once.'}
+      </p>
       <motion.ul variants={stagger} className="flex flex-wrap gap-2 pt-1">
         {sections.map((s) => {
           const count = flags.get(s) ?? 0
@@ -319,6 +365,10 @@ function Clauses({ report }: { report: ReportData }) {
               {count > 0 ? (
                 <Chip tone="risk-high" mono icon={<TriangleAlert size={12} aria-hidden />}>
                   §{s} · {count} flag{count === 1 ? '' : 's'}
+                </Chip>
+              ) : unchecked ? (
+                <Chip tone="neutral" mono>
+                  §{s} · not checked
                 </Chip>
               ) : (
                 <Chip tone="neutral" mono icon={<Check size={12} className="text-safe-text" aria-hidden />}>
@@ -336,8 +386,9 @@ function Clauses({ report }: { report: ReportData }) {
 function Facts({ report }: { report: ReportData }) {
   const baseId = useId()
   const errors = report.claim_check_errors
+  const check = claimCheckState(report)
   const tiles: Array<{ label: string; value: string; warn?: boolean }> = [
-    { label: 'Est. cost', value: `$${report.est_cost_usd.toFixed(4)}` },
+    { label: 'Contract check', value: check === 'ready' ? 'ran' : check === 'error' ? 'failed' : 'off', warn: check !== 'ready' },
     { label: 'Claim checks', value: String(report.claim_check_calls) },
     { label: 'Check errors', value: String(errors), warn: errors > 0 },
     { label: 'Transcript lines', value: String(report.transcript_count) },

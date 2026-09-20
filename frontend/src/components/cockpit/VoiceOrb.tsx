@@ -44,7 +44,17 @@ const Ring = memo(function Ring({ animate }: { animate: boolean }) {
 /** Kokonut AI Voice style bar ring (see THIRD_PARTY.md). The only cockpit
  * component that reads the audio-rate level (LevelContext); it writes it into
  * a CSS variable imperatively so React never diffs the bars per chunk. */
-export function VoiceOrb({ speaking, listening, connected }: { speaking: boolean; listening: boolean; connected: boolean }) {
+export function VoiceOrb({
+  speaking,
+  listening,
+  connected,
+  micBlocked = false,
+}: {
+  speaking: boolean
+  listening: boolean
+  connected: boolean
+  micBlocked?: boolean
+}) {
   const level = use(LevelContext)
   const reducedMotion = useReducedMotion()
   const discRef = useRef<HTMLDivElement>(null)
@@ -69,11 +79,18 @@ export function VoiceOrb({ speaking, listening, connected }: { speaking: boolean
         <Ring animate={!reducedMotion} />
         <AudioLines size={24} strokeWidth={1.75} />
       </div>
-      <div className="text-center" aria-live="polite">
-        <p className={cn('text-[13px] font-semibold', speaking ? 'text-voice-active-text' : 'text-text-secondary')}>
-          {!connected ? 'Connecting…' : speaking ? 'Speaking to the call' : listening ? 'Listening' : 'Idle'}
+      <div className="max-w-[240px] text-center" aria-live="polite">
+        <p
+          className={cn(
+            'text-[13px] font-semibold',
+            micBlocked ? 'text-risk-medium-text' : speaking ? 'text-voice-active-text' : 'text-text-secondary',
+          )}
+        >
+          {micBlocked ? 'Microphone blocked' : !connected ? 'Connecting…' : speaking ? 'Speaking to the call' : listening ? 'Listening' : 'Idle'}
         </p>
-        <p className="mt-0.5 font-mono text-[11px] text-text-muted">AssemblyAI Voice Agent</p>
+        <p className="mt-0.5 text-pretty font-mono text-[11px] text-text-muted">
+          {micBlocked ? 'Use Simulate rep line below' : 'AssemblyAI Voice Agent'}
+        </p>
       </div>
     </div>
   )

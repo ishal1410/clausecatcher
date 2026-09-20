@@ -30,7 +30,7 @@ export const AlertStack = memo(function AlertStack({
   }
 
   return (
-    <section className="relative flex min-h-0 flex-1 flex-col">
+    <section aria-label="Contradiction alerts" className="relative flex min-h-0 flex-col lg:flex-1">
       {/* One-shot red bloom behind the stack on each new alert: the "flash"
           transient that makes the alert beat read on a 720p video frame. */}
       {newest && !reducedMotion && (
@@ -53,12 +53,12 @@ export const AlertStack = memo(function AlertStack({
         {alerts.length > 1 && <span className="text-[11px] text-text-muted">Newest first</span>}
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-2" aria-live="polite">
+      <div className="relative min-h-0 px-5 pb-4 pt-2 lg:flex-1 lg:overflow-y-auto" aria-live="polite">
         {alerts.length === 0 ? (
           <motion.div
             initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex h-full min-h-32 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-safe/25 bg-safe/[0.04] px-6 text-center"
+            className="flex min-h-48 flex-col items-center justify-center gap-3 lg:h-full lg:min-h-32 rounded-lg border border-dashed border-safe/25 bg-safe/[0.04] px-6 text-center"
           >
             {/* "armed" radar: two rings expanding off the shield, CSS-only */}
             <span className="relative flex h-14 w-14 items-center justify-center" aria-hidden>

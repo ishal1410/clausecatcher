@@ -4,6 +4,11 @@
 **Status**: Accepted 2026-09-14 — Option B (two connections), confirmed by user after pre-registered Probe A (spikes/protocol/PROBE_A_SPEC.md + addendum): P3 strong prompt valid FAIL (4 transcripts, 4 replies); corrected P2 (vad_threshold 1.0, min_silence 1000, max_silence 10000) INVALID — accepted by server but 0 speech detected; P1 silence PASS (non-decisive); docs show no reply-suppression control.
 **Deciders**: Vishal Patel
 
+> **Amended 2026-09-17 — read this before the option list below.** Option B was
+> accepted and shipped, but two parts of it as written here never made it into the
+> product. See [Amendment: what actually shipped](#amendment-2026-09-17--what-actually-shipped)
+> at the end.
+
 ## Context
 
 ClauseCatcher must transcribe a live sales rep continuously, stay silent unless
@@ -190,3 +195,35 @@ cheapest probes above (total under ~$0.50) are run and either (a) an
 Option-A silence variant is found that holds, or (b) B's reactive-open
 alert path fails latency/reliability checks, this recommendation should be
 revisited.
+
+---
+
+## Amendment 2026-09-17 — what actually shipped
+
+**Status of this amendment**: accepted. It does not reverse the decision (Option B
+still stands); it corrects two mechanisms Option B was written around, both of which
+were dropped after the live probe on 2026-09-15.
+
+### What changed, and why
+
+| Option B as written above | What shipped | Why |
+|---|---|---|
+| Alerts sent as `conversation.message` + `reply.create` | `reply.create` only, carrying a "say exactly the following text and nothing else, word for word" instruction. No `conversation.message` is ever sent (`server/voice.py`, module docstring and `AlertSpeaker`). | In `spikes/voice_agent/out/probe_gate_20260915T051527Z.json`, injecting the alert as a conversation message without a say-exactly instruction scored 0.179 to 0.27 similarity against the source text and graded FAIL on all three variants. One reply came back as "Please provide the compliance alert or the contract clause section number you would like me to process". The agent ignored the injected content. |
+| Monitor Q&A via a client-side tool (`lookup_clause`) | No tools are registered on the session at all. The monitor picks a clause from a dropdown in the cockpit rail, the browser sends `{type: "ask", section_number}`, and the server looks the clause up itself (`server/main.py handle_ask`) and speaks it through the same `say_exactly` path. | The tool round trip graded INVALID in the same probe, with similarity 0.0 and 4890 ms to first audio — the slowest measurement in the run. A dropdown plus a server-side dictionary lookup is deterministic, faster, and cannot pick the wrong clause. |
+
+### Consequences of the amendment
+
+**Positive.** One code path speaks everything: alerts and clause answers both go
+through `say_exactly`, so the verbatim check (`_grade_match` → `literal_spoken`,
+`similarity`) covers both. The agent's LLM never chooses which clause is read, which
+removes the failure the tool probe actually exhibited.
+
+**Negative.** The Voice Agent's visible surface is narrower than the ADR implied: it
+is a speech endpoint under instruction, not a conversational agent. In a hackathon
+named after the Voice Agent API that is a real cost, and it is a deliberate one.
+There is also no spoken input for questions anywhere in the product — the only
+microphone stream goes to Streaming STT for the rep transcript.
+
+**Unchanged.** The two-connection split, and the reason for it. Note that the
+evidence for it is one live session (N=1): four unsolicited replies despite an
+explicit silence prompt, with the reply text not captured.

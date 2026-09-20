@@ -33,9 +33,13 @@ import os
 import time
 from typing import Any, Optional
 
-DEFAULT_MODEL = os.environ.get("CLAUSECATCHER_GEMINI_MODEL", "gemini-2.5-flash")
+# Both constants were corrected on 2026-09-17 to match the shipped server
+# (server/claim_check.py). The old values no longer work against the live API:
+# "gemini-2.5-flash" now returns 404 NOT_FOUND ("no longer available to new
+# users"), and Gemini rejects any client deadline under 10 s.
+DEFAULT_MODEL = os.environ.get("CLAUSECATCHER_GEMINI_MODEL", "gemini-3.5-flash-lite")
 CONFIDENCE_MIN = 0.6  # contradiction below this confidence downgrades to "unclear"
-TIMEOUT_MS = 8000
+TIMEOUT_MS = 12000
 _VERDICTS = ("contradiction", "consistent", "unclear")
 
 _RESPONSE_SCHEMA = {

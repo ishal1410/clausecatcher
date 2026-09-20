@@ -144,8 +144,12 @@ The live path needs `getUserMedia` plus an AudioWorklet. That requires a
 secure context (fine on `https://…onrender.com`) and an explicit permission
 grant. A judge on a locked-down work laptop, in a browser with mic access
 denied by policy, or on iOS Safari in a background tab, may never get audio
-in — and the mic path has **not yet been verified end to end on real
-hardware** (`docs/submission/CHECKLIST.md` item 14).
+in. The mic path itself is verified end to end: an automated run on 2026-09-17
+drove a real browser through getUserMedia, an AudioWorklet and 16 kHz PCM16
+frames and passed 17 of 17 live-path checks (`docs/evidence/e2e_mic_run-live.json`).
+The capture device in that run was Chromium's fake audio device playing a WAV,
+so **physical microphone hardware remains untested** — which is exactly the
+failure mode this risk is about.
 
 - **Mitigated in code:** the **Simulate rep line** box is a first-class,
   labelled control in the cockpit rail, not a hidden debug hook — it sends
@@ -266,18 +270,16 @@ workspaces or push PDFs at the parser.
 
 ### R-13 — Repo doesn't match the submission · LOW · demo
 
-Judges open the GitHub link. Several submission-critical files were still
-unpushed when `CHECKLIST.md` item 10 was written; commits `3d78830` and
-`3ea3626` landed most of them, but the README screenshots only render on
-GitHub once everything is actually pushed to the remote.
+Judges open the GitHub link. Everything is pushed as of `a629536`: local and
+`origin/main` matched on 2026-09-17 with a clean working tree. The remaining
+exposure is cosmetic — the README screenshots only render for a logged-out
+visitor if the image paths resolve on the remote.
 
 - **Mitigated in code:** MIT `LICENSE` is in place (lablab requires
   MIT-compliant submissions); `.gitignore` and `.dockerignore` keep `.env` out
   of both git and the image.
-- **You must do:** push everything, then open the repo in a logged-out
-  browser and confirm the README renders with images.
-  `SLIDES.md` still says 81 tests where the PDF says 136 — harmless, but fix
-  it if you touch the file.
+- **You must do:** open the repo in a logged-out browser and confirm the
+  README renders with images.
 
 ---
 
@@ -299,8 +301,10 @@ before judging. None of them need more code.
 **Do these in this order:**
 
 1. Deploy to Render and verify the WebSocket probe returns `101` (~30 min).
-2. Record and upload the video against the hosted URL (2–3 h).
-3. Verify the real-mic path and add the measured line to the README (~30 min).
-4. Push everything and check the repo in a logged-out browser (~15 min).
-5. Fill in and submit the lablab form (~20 min).
+2. Pad the recorded video to 3:30–4:30 and upload it to Vimeo (1–2 h). The take
+   is shipped at 2:54; the padding plan is in `DEMO_NOTES.md`.
+3. Check the repo in a logged-out browser (~15 min).
+4. Fill in and submit the lablab form (~20 min).
+
+The mic path and the push are done (R-06, R-13).
 6. Freeze `main`. Wake the app before judging (`CHECKLIST.md`, 60 s).

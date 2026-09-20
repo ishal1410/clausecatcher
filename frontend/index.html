@@ -4,10 +4,50 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0F172A" />
     <title>ClauseCatcher</title>
+    <!--
+      Boot shell: the app bundle is ~400 KB and a sleeping free instance takes
+      up to a minute to answer, so the document itself has to say something.
+      Inline (no extra request), dark from the first paint, and React clears
+      #root on mount so nothing here survives into the app.
+    -->
+    <style>
+      html { background: #0f172a; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+      body { margin: 0; background: #0f172a; color: #94a3b8; font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      .cc-boot { display: grid; place-content: center; justify-items: center; gap: 14px; min-height: 100dvh; padding: 24px; text-align: center; text-wrap: pretty; }
+      .cc-boot-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+      .cc-boot-name { margin: 0; color: #f8fafc; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+      .cc-boot-line { margin: 0; max-width: 34ch; font-size: 14px; }
+      .cc-boot-bar { position: relative; width: 168px; height: 2px; overflow: hidden; border-radius: 2px; background: #1b2336; }
+      .cc-boot-bar::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 2px; background: #6366f1; animation: cc-boot-slide 1.6s ease-in-out infinite; }
+      @keyframes cc-boot-slide { from { transform: translateX(-110%); } to { transform: translateX(310%); } }
+      @media (prefers-reduced-motion: reduce) { .cc-boot-bar::after { animation: none; width: 100%; opacity: 0.5; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="cc-boot">
+        <span class="cc-boot-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        </span>
+        <p class="cc-boot-name">ClauseCatcher</p>
+        <p class="cc-boot-line">Starting up. The free demo server can take up to a minute to wake.</p>
+        <div class="cc-boot-bar" role="progressbar" aria-label="Loading ClauseCatcher"></div>
+      </div>
+    </div>
+    <noscript>
+      <style>
+        #root { display: none; }
+      </style>
+      <div class="cc-boot">
+        <p class="cc-boot-name">ClauseCatcher</p>
+        <p class="cc-boot-line">This demo needs JavaScript. Turn it on and reload to run a live call.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

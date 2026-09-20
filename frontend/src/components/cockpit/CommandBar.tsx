@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { ChevronDown, Search, Send } from 'lucide-react'
+import { ChevronDown, Search, Send, Volume2, VolumeX } from 'lucide-react'
 import type { Clause } from '../../lib/protocol'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
@@ -10,13 +10,19 @@ const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigat
  * API, so it was a control that did nothing. */
 export const CommandBar = memo(function CommandBar({
   clauses,
+  answered = [],
+  voiceReady = false,
   onAsk,
   onSimulate,
 }: {
   clauses: Clause[]
+  /** Clauses the server has answered (`clause` frames), oldest first. */
+  answered?: Clause[]
+  voiceReady?: boolean
   onAsk: (section: string) => void
   onSimulate: (text: string) => void
 }) {
+  const answer = answered[answered.length - 1]
   const [simulateText, setSimulateText] = useState('')
   const selectRef = useRef<HTMLSelectElement>(null)
 
@@ -66,6 +72,26 @@ export const CommandBar = memo(function CommandBar({
             <ChevronDown size={14} strokeWidth={1.75} className="text-text-muted" />
           </span>
         </div>
+
+        {/* The answer, in text. The voice agent reads the same words when a
+            voice key is present; without one the clause still has to land
+            somewhere, or the control looks inert. Literal contract text only. */}
+        {answer && (
+          <figure aria-live="polite" className="mt-3 rounded-md border border-brand/30 bg-brand/[0.07] p-2.5">
+            <figcaption className="mb-1.5 flex items-center justify-between gap-2">
+              <span className="min-w-0 truncate text-[12px] font-semibold text-brand-light">
+                <span className="font-mono tabular-nums">§{answer.section_number}</span> {answer.title}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-text-muted">
+                {voiceReady ? <Volume2 size={11} strokeWidth={2} aria-hidden /> : <VolumeX size={11} strokeWidth={2} aria-hidden />}
+                {voiceReady ? 'Read aloud' : 'Text only'}
+              </span>
+            </figcaption>
+            <blockquote className="max-h-32 overflow-y-auto font-mono text-[12px] leading-relaxed text-text-primary">
+              {answer.literal_text}
+            </blockquote>
+          </figure>
+        )}
       </div>
 
       <div className="rounded-lg border border-dashed border-border bg-transparent p-3">

@@ -1,0 +1,507 @@
+{
+  "timestamp_utc": "20260918_002417",
+  "fake": false,
+  "model": "gemini-3.5-flash-lite",
+  "metrics": {
+    "total": 32,
+    "confusion_matrix": {
+      "expected=contradiction|predicted=contradiction": 14,
+      "expected=contradiction|predicted=consistent": 0,
+      "expected=contradiction|predicted=unclear": 0,
+      "expected=consistent|predicted=contradiction": 0,
+      "expected=consistent|predicted=consistent": 11,
+      "expected=consistent|predicted=unclear": 0,
+      "expected=unclear|predicted=contradiction": 0,
+      "expected=unclear|predicted=consistent": 0,
+      "expected=unclear|predicted=unclear": 7
+    },
+    "contradiction_recall": 1.0,
+    "false_alarm_rate": 0.0,
+    "clause_id_accuracy_on_true_positives": 1.0,
+    "latency_ms_p50": 3460.9999999956926,
+    "latency_ms_p95": 3994.649999994726,
+    "error_count": 0
+  },
+  "records": [
+    {
+      "id": "c01",
+      "sentence": "We can do $40,000 flat instead of the standard rate.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "3.1",
+      "note": "direct: wrong price",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "3.1",
+        "confidence": 0.95,
+        "latency_ms": 7327.999999979511,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c02",
+      "sentence": "We'll knock ten percent off if you sign today.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "3.1",
+      "note": "paraphrase of 'no automatic or verbal discounting'",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "3.1",
+        "confidence": 0.98,
+        "latency_ms": 3734.99999998603,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c03",
+      "sentence": "The price is a flat forty-eight thousand dollars for up to fifty seats.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "3.1",
+      "note": "direct restatement",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "3.1",
+        "confidence": 1.0,
+        "latency_ms": 3328.9999999979045,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c04",
+      "sentence": "You're covered for fifty seats at that price, no extra charge.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "3.1",
+      "note": "numeric edge: exactly at the 50-seat cap",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "3.1",
+        "confidence": 1.0,
+        "latency_ms": 3062.999999994645,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c05",
+      "sentence": "Fifty-one seats fit under the flat fee, no amendment needed.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "3.1",
+      "note": "numeric edge: 51 > 50-seat cap, needs signed amendment",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "3.1",
+        "confidence": 0.99,
+        "latency_ms": 3312.000000005355,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c06",
+      "sentence": "If you need more than fifty seats, we'd need a signed amendment first.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "3.1",
+      "note": "paraphrase, consistent",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "3.1",
+        "confidence": 1.0,
+        "latency_ms": 3609.99999998603,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c07",
+      "sentence": "You can cancel the contract any time mid-term with no penalty.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "4.2",
+      "note": "direct: no mid-term termination clause",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "4.2",
+        "confidence": 1.0,
+        "latency_ms": 3233.9999999967404,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c08",
+      "sentence": "Cancel anytime, no strings attached.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "4.2",
+      "note": "paraphrase, contradicts no-mid-term-termination + notice requirement",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "4.2",
+        "confidence": 0.95,
+        "latency_ms": 3500.0,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c09",
+      "sentence": "It auto-renews yearly unless you give us sixty days written notice.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "4.2",
+      "note": "direct restatement",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "4.2",
+        "confidence": 1.0,
+        "latency_ms": 3516.0000000032596,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c10",
+      "sentence": "Thirty days written notice before renewal is all you need to opt out.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "4.2",
+      "note": "numeric edge: 30 < required 60-day notice",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "4.2",
+        "confidence": 0.95,
+        "latency_ms": 3483.9999999967404,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c11",
+      "sentence": "Give us sixty days notice in writing and it won't auto-renew.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "4.2",
+      "note": "numeric edge: matches 60-day requirement exactly",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "4.2",
+        "confidence": 1.0,
+        "latency_ms": 3594.0000000118744,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c12",
+      "sentence": "It's a one-year term that rolls over automatically unless you write in ahead of time.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "4.2",
+      "note": "paraphrase, consistent",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "4.2",
+        "confidence": 0.95,
+        "latency_ms": 3687.000000005355,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c13",
+      "sentence": "We keep your data forever, even after you cancel.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "5.3",
+      "note": "direct: contradicts permanent deletion after 30-day archive",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "5.3",
+        "confidence": 0.99,
+        "latency_ms": 3500.0,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c14",
+      "sentence": "Your data disappears the moment you leave us, no backup kept.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "5.3",
+      "note": "paraphrase: skips the 30-day recoverable archive",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "5.3",
+        "confidence": 0.95,
+        "latency_ms": 3219.0000000118744,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c15",
+      "sentence": "After you leave, we keep a recoverable backup for thirty days, then it's permanently deleted.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "5.3",
+      "note": "direct restatement",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "5.3",
+        "confidence": 1.0,
+        "latency_ms": 3578.0000000086147,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c16",
+      "sentence": "We hold a recoverable copy for sixty days before deleting it.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "5.3",
+      "note": "numeric edge: 60 != 30-day archive window",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "5.3",
+        "confidence": 0.95,
+        "latency_ms": 3203.0000000086147,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c17",
+      "sentence": "Data's recoverable for up to thirty days after offboarding.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "5.3",
+      "note": "numeric edge: matches 30-day window exactly",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "5.3",
+        "confidence": 1.0,
+        "latency_ms": 3437.999999994645,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c18",
+      "sentence": "P1 issues get a same-hour response, any day of the week.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "6.1",
+      "note": "direct: SLA is 4 business hours Mon-Fri, not same-hour every day",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "6.1",
+        "confidence": 0.95,
+        "latency_ms": 3515.00000001397,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c19",
+      "sentence": "We offer round-the-clock coverage included in every plan.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "6.1",
+      "note": "paraphrase: 24/7 requires Premium Support Addendum",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "6.1",
+        "confidence": 0.95,
+        "latency_ms": 3218.9999999827705,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c20",
+      "sentence": "Critical P1 tickets get a response within four business hours, Monday through Friday.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "6.1",
+      "note": "direct restatement",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "6.1",
+        "confidence": 1.0,
+        "latency_ms": 4312.000000005355,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c21",
+      "sentence": "P1 response time is guaranteed within eight business hours.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "6.1",
+      "note": "numeric edge: 8 > 4-hour SLA",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "6.1",
+        "confidence": 0.95,
+        "latency_ms": 3219.0000000118744,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c22",
+      "sentence": "You'll hear back on a P1 within four business hours during the week.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "6.1",
+      "note": "numeric edge: matches exactly",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "6.1",
+        "confidence": 1.0,
+        "latency_ms": 3625.0,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c23",
+      "sentence": "We take security really seriously here.",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "hedged/vague, no concrete claim",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 1.0,
+        "latency_ms": 2937.000000005355,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c24",
+      "sentence": "Our team really cares about customer support.",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "hedged/vague, no concrete SLA claim",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 1.0,
+        "latency_ms": 3281.0000000172295,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c25",
+      "sentence": "Pricing is competitive and flexible for growing teams.",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "hedged/vague, no concrete price/seat claim",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 0.85,
+        "latency_ms": 3671.9999999913853,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c26",
+      "sentence": "How was your weekend, did you catch the game?",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "off-topic small talk",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 1.0,
+        "latency_ms": 3405.9999999881256,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c27",
+      "sentence": "Let's hop on a call next Tuesday to go over details.",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "off-topic small talk",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 1.0,
+        "latency_ms": 3110.000000015134,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "c28",
+      "sentence": "Thanks so much for your time today, really appreciate it.",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "off-topic small talk",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 1.0,
+        "latency_ms": 3483.9999999967404,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "rp01",
+      "sentence": "You can cancel with sixty days written notice before your renewal date each year.",
+      "expected_verdict": "consistent",
+      "expected_clause_id": "4.2",
+      "note": "from spikes/harness/audio_24k/rep_pitch.txt, labeled 'correct' there; matches 60-day written notice",
+      "predicted": {
+        "verdict": "consistent",
+        "clause_id": "4.2",
+        "confidence": 1.0,
+        "latency_ms": 3375.0,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "rp02",
+      "sentence": "Past fifty seats, we'll apply a ten percent volume discount automatically, no paperwork needed.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "3.1",
+      "note": "from rep_pitch.txt, labeled 'contradiction' there; contradicts 'no automatic or verbal discounting'",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "3.1",
+        "confidence": 0.99,
+        "latency_ms": 3687.999999994645,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "rp03",
+      "sentence": "Our support team is available twenty four seven as part of the standard plan.",
+      "expected_verdict": "contradiction",
+      "expected_clause_id": "6.1",
+      "note": "from rep_pitch.txt, labeled 'contradiction' there; 24/7 needs Premium Support Addendum",
+      "predicted": {
+        "verdict": "contradiction",
+        "clause_id": "6.1",
+        "confidence": 0.99,
+        "latency_ms": 2796.0000000020955,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    },
+    {
+      "id": "rp04",
+      "sentence": "We take data security seriously, you don't have to worry about anything after you leave us.",
+      "expected_verdict": "unclear",
+      "expected_clause_id": null,
+      "note": "from rep_pitch.txt, labeled 'ambiguous' there; hedged, no concrete retention claim",
+      "predicted": {
+        "verdict": "unclear",
+        "clause_id": null,
+        "confidence": 0.85,
+        "latency_ms": 3437.999999994645,
+        "model": "gemini-3.5-flash-lite",
+        "error": null
+      }
+    }
+  ]
+}

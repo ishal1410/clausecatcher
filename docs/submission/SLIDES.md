@@ -57,9 +57,9 @@
 ## Slide 6: Why AssemblyAI, specifically
 
 **On slide:**
-- Streaming STT v3: keyterms from the contract improve recognition of contract-specific language
+- Streaming STT v3: keyterms from the contract, which AssemblyAI documents as a recognition hint (we did not measure the gain)
 - Voice Agent API: `reply.create` with a "say this exactly" instruction, not generated speech
-- The verbatim guarantee only works because of that instruction
+- The verbatim check only passes because of that instruction
 
 **Speaker notes:** We first tried injecting the alert as a fake conversation message and asking the agent to react to it. It ignored the content and asked us to provide the alert again. Instructing the agent directly to say a fixed string, word for word, is what actually produces a verbatim match. That's not a guess; we tested both and only one works.
 
@@ -79,13 +79,14 @@
 ## Slide 8: Measured results
 
 **On slide:**
-- Live run, real AssemblyAI + Gemini connections, Sep 15 2026
+- Live runs, real AssemblyAI + Gemini connections, Sep 15 and Sep 17 2026
 - Two false claims caught (§3.1, §6.1); consistent lines raised nothing
-- Alerts ~2 seconds after the sentence; spoken match verified word for word
-- First voice audio ~78 ms after the speak request
-- $0.08 to $0.15 of API usage per call; 136 backend tests passing
+- Alerts 4 to 6.5 s after the sentence, across five logged alerts; the agent's own transcript verified word for word against the clause
+- Alert to first spoken word: 375 ms
+- $0.08 to $0.15 per call by the app's own estimate; 136 backend tests passing
+- Browser-mic path verified end to end, 17 of 17 automated checks (Sep 17 2026)
 
-**Speaker notes:** These are the actual numbers from one end-to-end run, not projections. The browser-microphone path and a hosted deployment are still being finished; we're not claiming those yet.
+**Speaker notes:** These are numbers from real end-to-end runs, not projections, and the logs are in the repo under docs/evidence. Say the caveats once, plainly: each figure is a single run rather than an average, the browser-mic run used Chromium's fake capture device instead of a physical microphone, and there is no hosted deployment yet, so nothing here is claimed for one.
 
 ---
 
@@ -93,7 +94,7 @@
 
 **On slide:**
 - Buyer: sales-ops and compliance teams monitoring live calls
-- Next: browser-mic path hardening, deployment, multi-contract support
-- Built solo for this hackathon in 16 days
+- Next: the mic path on physical hardware, deployment, multi-contract support
+- Built solo, Sep 14 to 17 2026 (11 commits)
 
-**Speaker notes:** The team is one builder. The near-term roadmap is finishing the parts the demo doesn't yet cover live: the real browser microphone path end to end, and a deployed instance instead of a local one. Close on the product line: the correction a rep hears is the contract's own words, spoken back to them, while the call is still happening.
+**Speaker notes:** The team is one builder. The near-term roadmap is the parts the demo doesn't yet cover: the mic path on physical hardware rather than a synthetic capture device, and a deployed instance instead of a local one. Close on the product line: the correction a rep hears is the contract's own words, spoken back to them, while the call is still happening.

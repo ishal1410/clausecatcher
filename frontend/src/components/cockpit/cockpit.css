@@ -8,6 +8,46 @@
  * Transcript, alert cards and the clause watchlist stay opaque, evidence-first.
  */
 
+/* The cockpit is the whole screen, not a card floating in it. */
+.cc-cockpit {
+  min-height: 100dvh;
+}
+
+/* Below lg the three panes stack instead of competing for width: alerts
+   first, controls second, transcript last (order on the children in
+   Cockpit.tsx). Flex, not grid, so each pane keeps its own height and the
+   page scrolls rather than squeezing panes to nothing. */
+@media (max-width: 1023.98px) {
+  .cc-panes {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* TopBar (owned elsewhere) is one fixed-height row of three groups, so the
+     right-most one -- "End call" -- was clipped off the edge at 820px. Let it
+     wrap: the exit is never unreachable, at any width. */
+  .cc-cockpit > header {
+    height: auto;
+    min-height: 3.5rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.875rem;
+  }
+}
+
+/* Phone: the 4-up stat strip truncates its labels to "LI... C... R...", so
+   go 2x2 and redraw the dividers for the new grid. */
+@media (max-width: 639.98px) {
+  .cc-verdict > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cc-verdict > div > :nth-child(2n) {
+    border-inline-end-width: 0;
+  }
+  .cc-verdict > div > :nth-child(n + 3) {
+    border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+}
+
 .cc-glass {
   background: var(--surface-glass);
   backdrop-filter: blur(16px) saturate(160%);
@@ -212,6 +252,9 @@
    real viewport, not the zoomed one. */
 @media (min-width: 1760px) and (min-height: 990px) {
   .cc-cockpit {
-    zoom: 1.5; /* percentage heights (h-full) are not re-multiplied by zoom */
+    zoom: 1.5;
+    /* viewport units are not divided by zoom, so ask for a third less height
+       or the cockpit would be 1.5 screens tall and scroll */
+    min-height: calc(100dvh / 1.5);
   }
 }

@@ -26,16 +26,27 @@ free-tier rate limits — see comment in `eval_claim_check.py`):
 ```
 python eval_claim_check.py
 ```
-Optional flags: `--limit N` (first N claims only), `--sleep-ms 4500`, `--model gemini-2.5-flash`.
+Optional flags: `--limit N` (first N claims only), `--sleep-ms 4500`, `--model <model-id>`.
+A full 32-claim run takes about 4 minutes, almost all of it the pacing sleep.
 
 Without a key and without `--fake`, the script exits 2 immediately with no network call.
 
 ## Status
 
-Real Gemini accuracy is **UNMEASURED** — no key was configured on this machine when
-this spike was built. `--fake` only proves the plumbing (prompt building, schema
-validation, clause_id checking, confidence clamping, metrics math) runs end-to-end.
-Run the real eval command above once a key exists to get actual numbers.
+**Measured 2026-09-18 on `gemini-3.5-flash-lite`** (the model the server ships with),
+all 32 labeled claims, free tier: 14/14 contradictions caught with the correct clause
+ID, 0 false alarms on the 18 non-contradictions, 0 errors, latency p50 3461 ms / p95
+3995 ms. Full run: `docs/evidence/claim_check_eval_20260918.json`; confusion matrix and
+caveats: `docs/evidence/README.md`.
+
+The caveat that matters: all 32 sentences were written by the same author against the
+same four-clause demo contract, so a perfect score here is the checker passing on its
+own fixture. It says nothing about an unseen contract.
+
+Before that run, two constants here were stale against the live API and were corrected
+to match `server/claim_check.py`: the model default (`gemini-2.5-flash` now 404s as "no
+longer available to new users") and `TIMEOUT_MS` (8000 ms, below Gemini's 10 s minimum
+deadline). `--fake` still runs offline and only proves the plumbing.
 
 ## Files
 

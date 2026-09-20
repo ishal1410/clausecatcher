@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { ChevronRight, PhoneOff, ShieldCheck } from 'lucide-react'
-import { StatusPill, type PillState } from './StatusPill'
+import { StatusPill, claimPillState, type PillState } from './StatusPill'
 
 function toPillState(raw: string | undefined, connected: boolean, active: boolean): PillState {
   if (!connected || !raw) return 'connecting'
@@ -21,11 +21,9 @@ function ElapsedTimer({ connected }: { connected: boolean }) {
   const startRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!connected) {
-      startRef.current = null
-      setElapsed(0)
-      return
-    }
+    // a dead session freezes the clock at its last value; it must never keep
+    // ticking as if the call were live (DEMO_DAY_BUGS.md finding 2)
+    if (!connected) return
     startRef.current ??= Date.now()
     const id = window.setInterval(() => {
       if (startRef.current !== null) setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
@@ -44,17 +42,23 @@ export const TopBar = memo(function TopBar({
   connected,
   stt,
   voice,
+  claimCheck,
   sttStreaming,
   geminiActive,
   voiceSpeaking,
+  ended,
   onEnd,
 }: {
   connected: boolean
   stt: string | undefined
   voice: string | undefined
+  /** `status.claim_check` off the wire. Optional: Cockpit.tsx is owned by another agent. */
+  claimCheck?: string
   sttStreaming: boolean
   geminiActive: boolean
   voiceSpeaking: boolean
+  /** set once the session is over, so the bar can say so instead of "Offline" */
+  ended?: string | null
   onEnd: () => void
 }) {
   return (
@@ -73,7 +77,7 @@ export const TopBar = memo(function TopBar({
               className={connected ? 'h-1.5 w-1.5 rounded-full bg-risk-high cc-anim-livepulse' : 'h-1.5 w-1.5 rounded-full bg-border-strong'}
               aria-hidden
             />
-            {connected ? 'Live' : 'Offline'}
+            {connected ? 'Live' : ended ? 'Ended' : 'Offline'}
           </span>
           <span className="h-3 w-px bg-border" aria-hidden />
           <ElapsedTimer connected={connected} />
@@ -83,7 +87,7 @@ export const TopBar = memo(function TopBar({
       <div className="hidden items-center gap-1.5 md:flex" aria-label="Processing pipeline">
         <StatusPill label="AssemblyAI STT" state={toPillState(stt, connected, sttStreaming)} />
         {Arrow}
-        <StatusPill label="Gemini check" state={connected ? (geminiActive ? 'active' : 'connected') : 'connecting'} />
+        <StatusPill label="Gemini check" state={claimPillState(claimCheck, connected, geminiActive)} />
         {Arrow}
         <StatusPill label="AssemblyAI Voice" state={toPillState(voice, connected, voiceSpeaking)} />
       </div>

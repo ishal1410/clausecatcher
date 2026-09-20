@@ -1,0 +1,222 @@
+{
+ "video_epoch0": 1789686173.8373673,
+ "raw_video": "page@e2aac76e7716eb7cbe84a83faab2966a.webm",
+ "marks": {
+  "landing": 1789686175.5575109,
+  "how": 1789686182.9534905,
+  "setup": 1789686196.0688558,
+  "clauses": 1789686200.8184445,
+  "consent": 1789686209.9453127,
+  "cockpit": 1789686214.5349195,
+  "rep0_end": 1789686219.9893749,
+  "n7": 1789686228.8240833,
+  "n11": 1789686269.7661252,
+  "alert1": 1789686241.4051833,
+  "agent1_end": 1789686255.3883107,
+  "alert2": 1789686282.4254887,
+  "ask_focus": 1789686301.5759184,
+  "ask": 1789686305.2519743,
+  "agent3_end": 1789686316.5695376,
+  "end_call": 1789686324.8669734,
+  "report": 1789686325.0982714,
+  "take_end": 1789686335.4197328
+ },
+ "rep_at": [
+  1789686214.783,
+  1789686232.2393749,
+  1789686265.269375,
+  1789686275.407375
+ ],
+ "ws_log": [
+  {
+   "t": 1789686214.4877126,
+   "type": "status",
+   "stt": "connected",
+   "voice": "connected"
+  },
+  {
+   "t": 1789686215.5599935,
+   "type": "transcript",
+   "text": "Thanks for making time.",
+   "final": false
+  },
+  {
+   "t": 1789686216.3651648,
+   "type": "transcript",
+   "text": "Thanks for making time today.",
+   "final": true
+  },
+  {
+   "t": 1789686223.66758,
+   "type": "transcript",
+   "text": "Your",
+   "final": false
+  },
+  {
+   "t": 1789686223.6723628,
+   "type": "transcript",
+   "text": "Your 50 seats stay at the flat",
+   "final": false
+  },
+  {
+   "t": 1789686223.6802855,
+   "type": "transcript",
+   "text": "Your 50 seats stay at the flat $48,000 rate.",
+   "final": false
+  },
+  {
+   "t": 1789686223.6807964,
+   "type": "transcript",
+   "text": "Your 50 seats stay at the flat $48,000 rate.",
+   "final": true
+  },
+  {
+   "t": 1789686232.4568222,
+   "type": "transcript",
+   "text": "We can",
+   "final": false
+  },
+  {
+   "t": 1789686233.686995,
+   "type": "transcript",
+   "text": "We can also do a 10%",
+   "final": false
+  },
+  {
+   "t": 1789686234.9706378,
+   "type": "transcript",
+   "text": "We can also do a 10% automatic discount for a client",
+   "final": false
+  },
+  {
+   "t": 1789686236.060945,
+   "type": "transcript",
+   "text": "We can also do a 10% automatic discount for a client like this.",
+   "final": true
+  },
+  {
+   "t": 1789686241.4051833,
+   "type": "alert",
+   "section_number": "3.1"
+  },
+  {
+   "t": 1789686241.4718063,
+   "type": "agent_speaking",
+   "state": "start",
+   "text": "Contract alert: section 3.1 says: Flat $48,000 up to 50 seats; extra seats need signed written amendment; no automatic or verbal discounting."
+  },
+  {
+   "t": 1789686255.0183709,
+   "type": "agent_speaking",
+   "state": "end",
+   "text": "Contract alert: section 3.1 says: Flat $48,000 up to 50 seats; extra seats need signed written amendment; no automatic or verbal discounting."
+  },
+  {
+   "t": 1789686265.3745716,
+   "type": "transcript",
+   "text": "Renewal",
+   "final": false
+  },
+  {
+   "t": 1789686266.7572196,
+   "type": "transcript",
+   "text": "Renewal works the usual way.",
+   "final": false
+  },
+  {
+   "t": 1789686267.9576929,
+   "type": "transcript",
+   "text": "Renewal works the usual way, with 60 days written",
+   "final": false
+  },
+  {
+   "t": 1789686269.2596562,
+   "type": "transcript",
+   "text": "Renewal works the usual way, with 60 days written notice before the term end.",
+   "final": false
+  },
+  {
+   "t": 1789686269.7689428,
+   "type": "transcript",
+   "text": "Renewal works the usual way, with 60 days written notice before the term ends.",
+   "final": true
+  },
+  {
+   "t": 1789686275.4555902,
+   "type": "transcript",
+   "text": "And so",
+   "final": false
+  },
+  {
+   "t": 1789686276.654969,
+   "type": "transcript",
+   "text": "And support is available 24/7.",
+   "final": false
+  },
+  {
+   "t": 1789686277.9642892,
+   "type": "transcript",
+   "text": "And support is available 24/7 on the standard SLA.",
+   "final": false
+  },
+  {
+   "t": 1789686278.7525182,
+   "type": "transcript",
+   "text": "And support is available 24/7 on the Standard plan.",
+   "final": true
+  },
+  {
+   "t": 1789686282.4254887,
+   "type": "alert",
+   "section_number": "6.1"
+  },
+  {
+   "t": 1789686282.4822354,
+   "type": "agent_speaking",
+   "state": "start",
+   "text": "Contract alert: section 6.1 says: P1 within 4 business hours Mon-Fri 9-6 ET; 24/7 requires Premium Support Addendum."
+  },
+  {
+   "t": 1789686295.867649,
+   "type": "agent_speaking",
+   "state": "end",
+   "text": "Contract alert: section 6.1 says: P1 within 4 business hours Mon-Fri 9-6 ET; 24/7 requires Premium Support Addendum."
+  },
+  {
+   "t": 1789686305.242752,
+   "type": "clause",
+   "section_number": "4.2"
+  },
+  {
+   "t": 1789686305.2509873,
+   "type": "agent_speaking",
+   "state": "start",
+   "text": "Section 4.2, Renewal: Auto-renews 12 months unless written notice 60 days before term ends; no mid-term termination."
+  },
+  {
+   "t": 1789686316.2862532,
+   "type": "agent_speaking",
+   "state": "end",
+   "text": "Section 4.2, Renewal: Auto-renews 12 months unless written notice 60 days before term ends; no mid-term termination."
+  },
+  {
+   "t": 1789686325.0705717,
+   "type": "session_ended"
+  }
+ ],
+ "agent_intervals": [
+  [
+   1789686241.6136184,
+   1789686255.1546357
+  ],
+  [
+   1789686282.542375,
+   1789686295.9506974
+  ],
+  [
+   1789686305.3158813,
+   1789686316.3472178
+  ]
+ ],
+ "_published_note": "Two edits when this file was copied into docs/evidence/: the absolute path in raw_video was cut to its filename, and an agent_chunks array of 3788 per-chunk audio arrival timings was dropped for size. Nothing else was changed."
+}

@@ -1,0 +1,195 @@
+{
+  "generated_at": "2026-09-15T05:15:27.139627+00:00",
+  "elapsed_total_s": 64.42,
+  "cold_runs": [
+    {
+      "section_number": "3.1",
+      "mode": "no_instructions",
+      "setup_ok": true,
+      "open": {
+        "connect_ms": 672,
+        "ready_ms": 1156
+      },
+      "speak": {
+        "inject_ms": 0,
+        "first_audio_ms": 156,
+        "done_ms": 3000,
+        "agent_transcript": "Understood. I am ready.",
+        "audio_chunks": 286,
+        "errors": [],
+        "role": "user",
+        "mode": "no_instructions",
+        "inject_delay_ms": 0,
+        "literal_spoken": false,
+        "similarity": 0.179
+      },
+      "errors": [],
+      "est_cost_usd": 0.0052
+    }
+  ],
+  "warm_run": {
+    "setup_ok": true,
+    "open": {
+      "connect_ms": 531,
+      "ready_ms": 859
+    },
+    "idle_s": 3,
+    "steps": [
+      {
+        "label": "warm_speak_no_instructions_delay800",
+        "kind": "b3",
+        "section_number": "3.1",
+        "inject_ms": 796,
+        "first_audio_ms": 890,
+        "done_ms": 8218,
+        "agent_transcript": "I am ready. Please provide the compliance alert or the contract clause section number you would like me to look up.",
+        "audio_chunks": 734,
+        "errors": [],
+        "role": "user",
+        "mode": "no_instructions",
+        "inject_delay_ms": 800,
+        "literal_spoken": false,
+        "similarity": 0.258
+      },
+      {
+        "label": "warm_speak_no_instructions",
+        "kind": "b3",
+        "section_number": "3.1",
+        "inject_ms": 0,
+        "first_audio_ms": 203,
+        "done_ms": 6563,
+        "agent_transcript": "Please provide the compliance alert or the contract clause section number you would like me to process.",
+        "audio_chunks": 637,
+        "errors": [],
+        "role": "user",
+        "mode": "no_instructions",
+        "inject_delay_ms": 0,
+        "literal_spoken": false,
+        "similarity": 0.27
+      },
+      {
+        "label": "warm_speak_say_exactly",
+        "kind": "b3",
+        "section_number": "3.1",
+        "inject_ms": 0,
+        "first_audio_ms": 78,
+        "done_ms": 12812,
+        "agent_transcript": "Contract alert: section 3.1 says: Flat $48,000 up to 50 seats; extra seats need signed written amendment; no automatic or verbal discounting.",
+        "audio_chunks": 1272,
+        "errors": [],
+        "role": "user",
+        "mode": "say_exactly",
+        "inject_delay_ms": 0,
+        "literal_spoken": true,
+        "similarity": 1.0
+      },
+      {
+        "label": "warm_speak_message_and_say_exactly",
+        "kind": "b3",
+        "section_number": "3.1",
+        "inject_ms": 0,
+        "first_audio_ms": 188,
+        "done_ms": 13219,
+        "agent_transcript": "Contract alert: section 3.1 says: Flat $48,000 up to 50 seats; extra seats need signed written amendment; no automatic or verbal discounting.",
+        "audio_chunks": 1303,
+        "errors": [],
+        "role": "user",
+        "mode": "message_and_say_exactly",
+        "inject_delay_ms": 0,
+        "literal_spoken": true,
+        "similarity": 1.0
+      },
+      {
+        "label": "warm_speak_legacy",
+        "kind": "b3",
+        "section_number": "3.1",
+        "inject_ms": 0,
+        "first_audio_ms": 203,
+        "done_ms": 9766,
+        "agent_transcript": "Flat $48,000 up to 50 seats; extra seats need signed written amendment; no automatic or verbal discounting.",
+        "audio_chunks": 958,
+        "errors": [],
+        "role": "user",
+        "mode": "legacy",
+        "inject_delay_ms": 0,
+        "literal_spoken": false,
+        "similarity": 0.866
+      },
+      {
+        "label": "warm_ask_text",
+        "kind": "b4",
+        "tool_called": true,
+        "tool_args": {
+          "section_number": "3.1"
+        },
+        "tool_result_sent": true,
+        "first_audio_ms": 203,
+        "agent_transcript": "",
+        "literal_spoken": false,
+        "similarity": 0.0,
+        "errors": []
+      },
+      {
+        "label": "warm_ask_wav",
+        "kind": "b4",
+        "tool_called": false,
+        "tool_args": null,
+        "tool_result_sent": false,
+        "first_audio_ms": 4890,
+        "agent_transcript": "Flat $48,000 up to 50 seats; extra seats need signed written amendment; no automatic or verbal discounting.",
+        "literal_spoken": false,
+        "similarity": 0.0,
+        "errors": []
+      }
+    ],
+    "errors": [],
+    "est_cost_usd": 0.0749
+  },
+  "total_est_cost_usd": 0.0801,
+  "grading": {
+    "b3": [
+      {
+        "label": "cold_speak_3.1_no_instructions",
+        "verdict": "FAIL",
+        "similarity": 0.179
+      },
+      {
+        "label": "warm_speak_no_instructions_delay800",
+        "verdict": "FAIL",
+        "similarity": 0.258
+      },
+      {
+        "label": "warm_speak_no_instructions",
+        "verdict": "FAIL",
+        "similarity": 0.27
+      },
+      {
+        "label": "warm_speak_say_exactly",
+        "verdict": "PASS",
+        "similarity": 1.0
+      },
+      {
+        "label": "warm_speak_message_and_say_exactly",
+        "verdict": "PASS",
+        "similarity": 1.0
+      },
+      {
+        "label": "warm_speak_legacy",
+        "verdict": "FAIL",
+        "similarity": 0.866
+      }
+    ],
+    "b4": [
+      {
+        "label": "warm_ask_text",
+        "verdict": "FAIL",
+        "similarity": 0.0
+      },
+      {
+        "label": "warm_ask_wav",
+        "verdict": "INVALID",
+        "similarity": 0.0
+      }
+    ]
+  }
+}

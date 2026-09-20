@@ -243,11 +243,11 @@ sets these defaults; change them in the **Environment** tab.
 |---|---|---|
 | `CLAUSECATCHER_MAX_LIVE_WS` | `2` | Max concurrent live call WebSockets; extra callers get "demo busy, try again shortly". |
 | `CLAUSECATCHER_BUDGET_USD` | `3` | Cap on **AssemblyAI** spend (STT + voice) for the running process. It does not count Gemini — Gemini is bounded by call count instead, below. |
-| `CLAUSECATCHER_PAID_DISABLED` | `0` | **Kill switch.** Set to `1` to stop all paid API use — AssemblyAI STT/voice *and* Gemini claim-checks (`server/main.py` and `server/claim_check.get_claim_checker`). Takes effect on the next session after the redeploy; the app stays up and still shows the contract, it just stops flagging. |
+| `CLAUSECATCHER_PAID_DISABLED` | `0` | **Kill switch.** Set to `1` to stop all paid API use — AssemblyAI STT/voice *and* Gemini claim-checks (`server/main.py` and `server/claim_check.get_claim_checker`). Takes effect on the next session after the redeploy; the app stays up and still shows the contract, it just stops flagging. The client is told: the `status` frame carries `claim_check: "disabled"` and each unchecked line gets a `check_error`, so the UI can never show a clean call that was never checked. |
 | `CLAUSECATCHER_SESSION_CAP_S` | `420` | Max length of one live call, in seconds. |
 | `CLAUSECATCHER_IDLE_TIMEOUT_S` | `60` | End a live call after this many seconds with no client messages. Not set by `render.yaml`; the server default is 60. |
 | `CLAUSECATCHER_MAX_CHECKS` | `40` | Max claim checks per session. |
-| `CLAUSECATCHER_MAX_GEMINI_CALLS` | `300` | Max Gemini calls for the running process. |
+| `CLAUSECATCHER_MAX_GEMINI_CALLS` | `300` | Max Gemini calls for the running process. Once reached, `status.claim_check` becomes `"error"` and further lines go unchecked. |
 | `CLAUSECATCHER_ALLOWED_ORIGINS` | *(unset)* | Allowed browser origin(s); set to your `https://<service>.onrender.com` URL. |
 
 If you see unexpected usage on the AssemblyAI or Gemini dashboards, set

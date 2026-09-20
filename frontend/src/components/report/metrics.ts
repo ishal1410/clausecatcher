@@ -8,11 +8,28 @@ export function scoreOf(report: Pick<Report, 'transcript_count' | 'contradiction
   return Math.max(0, Math.min(100, Math.round(raw)))
 }
 
-export type ScoreBand = 'clean' | 'review' | 'risk'
+export type ScoreBand = 'clean' | 'review' | 'risk' | 'unchecked'
+
+export type ClaimCheck = 'ready' | 'disabled' | 'error'
+
+/**
+ * Was the contract checker actually running for this call? The server sends
+ * `claim_check_state` in the report; on a server that doesn't yet, infer it
+ * from the counters — a call with no successful check compared nothing
+ * against the contract and must never be scored (DEMO_DAY_BUGS.md finding 1).
+ */
+export function claimCheckState(report: Pick<Report, 'claim_check_calls' | 'claim_check_errors'> & { claim_check_state?: unknown }): ClaimCheck {
+  const raw = report.claim_check_state
+  if (raw === 'ready' || raw === 'disabled' || raw === 'error') return raw
+  if (report.claim_check_calls > report.claim_check_errors) return 'ready'
+  return report.claim_check_errors > 0 ? 'error' : 'disabled'
+}
 
 /** safe above 90, accent 70-90, risk-high below 70. Any contradiction caps the band at 'review':
- *  one false promise is a compliance breach, so the report never calls such a call "clean". */
-export function scoreBand(score: number, contradictions = 0): ScoreBand {
+ *  one false promise is a compliance breach, so the report never calls such a call "clean".
+ *  A call whose claim check never ran has no score at all — 'unchecked'. */
+export function scoreBand(score: number, contradictions = 0, claimCheck: ClaimCheck = 'ready'): ScoreBand {
+  if (claimCheck !== 'ready') return 'unchecked'
   if (score > 90) return contradictions > 0 ? 'review' : 'clean'
   if (score >= 70) return 'review'
   return 'risk'

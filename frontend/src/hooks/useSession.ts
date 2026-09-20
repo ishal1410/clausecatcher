@@ -26,9 +26,20 @@ export interface AlertRecord {
   t: string
 }
 
+/** Why the session is over. `closed` = socket dropped with no server reason. */
+export type EndReason = 'idle' | 'time_limit' | 'stopped' | 'busy' | 'closed'
+
+/** Server-reported state of the Gemini claim-check leg (`status.claim_check`). */
+export type ClaimCheckState = 'ready' | 'disabled' | 'error'
+
+/** What the user is told when they type into a dead session. */
+export const NOT_CONNECTED_MESSAGE = 'Session ended — nothing was sent. Start a new session to keep testing.'
+
 export interface SessionState {
   connected: boolean
-  status: { stt: string; voice: string } | null
+  /** null while live; set once the server ends the call or the socket drops. */
+  ended: EndReason | null
+  status: { stt: string; voice: string; claim_check?: ClaimCheckState } | null
   transcript: TranscriptLine[]
   alerts: AlertRecord[]
   clauses: Clause[]
@@ -39,6 +50,7 @@ export interface SessionState {
 
 export const initialState: SessionState = {
   connected: false,
+  ended: null,
   status: null,
   transcript: [],
   alerts: [],
@@ -51,16 +63,23 @@ export const initialState: SessionState = {
 type Action =
   | { kind: 'reset' }
   | { kind: 'connected' }
+  | { kind: 'disconnected'; code?: number }
   | { kind: 'server'; msg: ServerMessage }
   | { kind: 'local_transcript'; text: string }
   | { kind: 'ws_error'; message: string }
+
+const END_REASONS: readonly string[] = ['idle', 'time_limit', 'stopped', 'busy', 'closed']
+const asEndReason = (raw: unknown): EndReason | null => (typeof raw === 'string' && END_REASONS.includes(raw) ? (raw as EndReason) : null)
 
 export function reducer(state: SessionState, action: Action): SessionState {
   switch (action.kind) {
     case 'reset':
       return initialState
     case 'connected':
-      return { ...state, connected: true }
+      return { ...state, connected: true, ended: null }
+    case 'disconnected':
+      // 1013 "try again later" is how the server refuses a third live demo caller
+      return { ...state, connected: false, ended: state.ended ?? (action.code === 1013 ? 'busy' : 'closed') }
     case 'local_transcript':
       return { ...state, transcript: [...state.transcript, { text: action.text, final: true }] }
     case 'ws_error':
@@ -68,8 +87,12 @@ export function reducer(state: SessionState, action: Action): SessionState {
     case 'server': {
       const msg = action.msg
       switch (msg.type) {
-        case 'status':
-          return { ...state, status: { stt: msg.stt, voice: msg.voice } }
+        case 'status': {
+          // claim_check is newer than this file's protocol.ts copy — read it defensively
+          const raw = (msg as { claim_check?: string }).claim_check
+          const claim_check = raw === 'ready' || raw === 'disabled' || raw === 'error' ? raw : undefined
+          return { ...state, status: { stt: msg.stt, voice: msg.voice, claim_check } }
+        }
         case 'transcript': {
           const final = !!msg.final
           const lines = state.transcript
@@ -105,10 +128,21 @@ export function reducer(state: SessionState, action: Action): SessionState {
           // server may end a session without a report (e.g. reason "busy",
           // error "demo busy, try again shortly") -- surface the error, don't crash
           const ended = msg as typeof msg & { reason?: string; error?: string }
-          return { ...state, report: ended.report ?? null, error: ended.error ?? state.error }
+          return {
+            ...state,
+            report: ended.report ?? null,
+            error: ended.error ?? state.error,
+            ended: asEndReason(ended.reason) ?? 'stopped',
+          }
         }
-        default:
+        default: {
+          // check_error is newer than this file's protocol.ts copy
+          const other = msg as { type: string; message?: string }
+          if (other.type === 'check_error') {
+            return { ...state, error: other.message ?? 'That line could not be checked against the contract.' }
+          }
           return state
+        }
       }
     }
     default:
@@ -210,10 +244,21 @@ export function useSession() {
     playbackNextStartRef.current = startAt + buffer.duration
   }, [])
 
-  const send = useCallback((msg: ClientMessage) => {
+  /** Returns whether the message actually went out — callers must not pretend it did. */
+  const send = useCallback((msg: ClientMessage): boolean => {
     const ws = wsRef.current
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg))
+    if (!ws || ws.readyState !== WebSocket.OPEN) return false
+    ws.send(JSON.stringify(msg))
+    return true
   }, [])
+
+  /** The call is over: stop the mic/playback so a dead session can't keep capturing. */
+  const teardown = useCallback(() => {
+    callActiveRef.current = false
+    agentSpeakingRef.current = false
+    stopMicCapture()
+    stopPlayback()
+  }, [stopMicCapture, stopPlayback])
 
   const start = useCallback(
     (sessionId: string) => {
@@ -249,39 +294,52 @@ export function useSession() {
         if (msg.type === 'agent_speaking') agentSpeakingRef.current = msg.state === 'start'
         if (msg.type === 'agent_audio') playAgentAudioChunk(msg.pcm16_b64, msg.sample_rate || 24000)
         dispatch({ kind: 'server', msg })
-        if (msg.type === 'session_ended') ws.close()
+        if (msg.type === 'session_ended') {
+          teardown() // the server ended the call — the mic must stop even if the judge never clicks "End call"
+          ws.close()
+        }
       }
 
       ws.onerror = () => dispatch({ kind: 'ws_error', message: 'Connection to ClauseCatcher server had an error.' })
 
-      ws.onclose = () => {
-        // no-op: reducer state already reflects status; UI reads `connected`
+      // the socket closing IS the session ending: demo-busy cap (1013), 60 s
+      // idle, 7 min cap, server restart. Without this the cockpit kept
+      // showing LIVE with a running timer (DEMO_DAY_BUGS.md finding 2).
+      ws.onclose = (event: CloseEvent) => {
+        teardown()
+        dispatch({ kind: 'disconnected', code: event.code })
       }
     },
-    [startMicCapture, playAgentAudioChunk, stopMicCapture, stopPlayback],
+    [startMicCapture, playAgentAudioChunk, stopMicCapture, stopPlayback, teardown],
   )
 
   const stop = useCallback(() => {
-    callActiveRef.current = false
-    agentSpeakingRef.current = false
+    teardown()
     send({ type: 'stop' })
-    stopMicCapture()
-    stopPlayback()
     // onmessage closes on session_ended (report delivered); this backstop covers a server that never sends it
     const ws = wsRef.current
     if (ws) window.setTimeout(() => ws.close(), 2000)
-  }, [send, stopMicCapture, stopPlayback])
+  }, [send, teardown])
+
+  const warnNotConnected = useCallback(() => dispatch({ kind: 'ws_error', message: NOT_CONNECTED_MESSAGE }), [])
 
   const sendSimulate = useCallback(
     (text: string) => {
       if (!text.trim()) return
-      send({ type: 'transcript', text })
-      dispatch({ kind: 'local_transcript', text })
+      // only echo a line the socket actually carried — a closed session used to
+      // grow a fake transcript and tick "Lines checked" (DEMO_DAY_BUGS.md finding 2)
+      if (send({ type: 'transcript', text })) dispatch({ kind: 'local_transcript', text })
+      else warnNotConnected()
     },
-    [send],
+    [send, warnNotConnected],
   )
 
-  const sendAsk = useCallback((sectionNumber: string) => send({ type: 'ask', section_number: sectionNumber }), [send])
+  const sendAsk = useCallback(
+    (sectionNumber: string) => {
+      if (!send({ type: 'ask', section_number: sectionNumber })) warnNotConnected()
+    },
+    [send, warnNotConnected],
+  )
 
   return {
     state,
