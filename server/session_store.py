@@ -56,7 +56,17 @@ class SessionStore:
         ws = Workspace(workspace_id=secrets.token_urlsafe(32))
         self.workspaces[ws.workspace_id] = ws
         while len(self.workspaces) > self.max_workspaces:
-            del self.workspaces[next(iter(self.workspaces))]
+            # Evict empty workspaces first, oldest one, and only then fall back
+            # to the oldest workspace overall. Straight LRU let anyone flush a
+            # real user's uploaded contract: POST /api/contract/demo needs no
+            # body, no cookie and no auth, so ~1000 of them in a loop pushed
+            # every loaded contract out and the app answered "no contract
+            # loaded" to the person who had just uploaded one. Same shape as
+            # the session eviction below.
+            victim = next((w for w in self.workspaces.values() if not w.contract), None) or next(iter(self.workspaces.values()))
+            if victim.workspace_id == ws.workspace_id:
+                break  # never evict the workspace we are handing back
+            del self.workspaces[victim.workspace_id]
         return ws
 
     def get_workspace(self, workspace_id: str | None) -> Workspace | None:
@@ -86,7 +96,9 @@ class SessionStore:
 
     def get_session(self, session_id: str, workspace_id: str | None) -> SessionState | None:
         session = self.sessions.get(session_id)
-        if session is None or not workspace_id or not secrets.compare_digest(session.workspace_id, workspace_id):
+        if session is None or not workspace_id or not workspace_id.isascii():
+            return None
+        if not secrets.compare_digest(session.workspace_id, workspace_id):
             return None
         return session
 
@@ -109,7 +121,17 @@ def demo() -> None:
     store.end_session(s)
     assert s.ended_at is not None
     store.new_workspace(), store.new_workspace()
-    assert store.get_workspace(ws.workspace_id) is None  # evicted
+    assert store.get_workspace(ws.workspace_id) is None  # evicted (its contract was emptied above)
+
+    # A flood of empty workspaces must not evict one that holds a contract:
+    # POST /api/contract/demo needs no body, cookie or auth, so under straight
+    # LRU anyone could loop it and flush every real upload.
+    flood = SessionStore(max_workspaces=2)
+    keeper = flood.new_workspace()
+    keeper.contract = [{"section_number": "3.1", "title": "Pricing", "literal_text": "Flat $48,000."}]
+    for _ in range(10):
+        flood.new_workspace()
+    assert flood.get_workspace(keeper.workspace_id) is keeper, "a contract-bearing workspace was evicted"
     print("session_store.py demo: OK")
 
 

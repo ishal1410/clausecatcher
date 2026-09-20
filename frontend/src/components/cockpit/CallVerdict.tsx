@@ -43,10 +43,15 @@ export function callStatus(
   contradictions: number,
   claimCheck: ClaimCheckState | undefined,
   checkFailed: boolean,
+  ended = false,
+  checked = 0,
 ): { label: string; tone: 'safe' | 'risk' | 'unknown' } {
   if (contradictions > 0) return { label: 'Off-contract', tone: 'risk' }
-  if (!connected) return { label: 'Connecting', tone: 'unknown' }
+  if (!connected) return { label: ended ? 'Ended' : 'Connecting', tone: 'unknown' }
   if (claimCheck !== 'ready' || checkFailed) return { label: 'Not checked', tone: 'unknown' }
+  // A verdict on an empty call is not a verdict. Stay neutral until the rep
+  // has actually said something for the checker to work on.
+  if (checked === 0) return { label: 'Listening', tone: 'unknown' }
   return { label: 'On-contract', tone: 'safe' }
 }
 
@@ -60,6 +65,7 @@ export const CallVerdict = memo(function CallVerdict({
   spoken,
   claimCheck,
   checkFailed = false,
+  ended = false,
 }: {
   connected: boolean
   checked: number
@@ -67,12 +73,15 @@ export const CallVerdict = memo(function CallVerdict({
   spoken: number
   claimCheck?: ClaimCheckState
   checkFailed?: boolean
+  ended?: boolean
 }) {
   const atRisk = contradictions > 0
-  const status = callStatus(connected, contradictions, claimCheck, checkFailed)
-  // Nothing was verified, so a count of "checked" lines would be a second
-  // false claim sitting next to the first one.
-  const unknown = status.tone === 'unknown' && connected
+  const status = callStatus(connected, contradictions, claimCheck, checkFailed, ended, checked)
+  // Every visual below reads `status.tone` and nothing else. An earlier cut
+  // re-derived this as `tone === 'unknown' && connected`, which handed the
+  // disconnect path back to the safe styling and the raw line count — a
+  // dropped socket turned an unchecked call green. One source of truth.
+  const unknown = status.tone === 'unknown'
   const Icon = atRisk ? ShieldAlert : unknown ? ShieldQuestion : ShieldCheck
 
   return (
@@ -109,7 +118,7 @@ export const CallVerdict = memo(function CallVerdict({
           </p>
         </div>
       </div>
-      <Stat label="Lines checked" value={unknown ? '—' : checked} />
+      <Stat label="Lines heard" value={checked} />
       <Stat label="Contradictions" value={contradictions} tone={atRisk ? 'risk' : 'neutral'} />
       <Stat label="Read verbatim" value={contradictions ? `${spoken}/${contradictions}` : '—'} tone={atRisk && spoken === contradictions ? 'safe' : 'neutral'} />
     </div>

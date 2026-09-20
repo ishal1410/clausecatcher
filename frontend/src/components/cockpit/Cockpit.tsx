@@ -118,6 +118,7 @@ const CockpitBody = memo(function CockpitBody({
         geminiActive={geminiActive}
         voiceSpeaking={agentSpeaking}
         claimCheck={state.status?.claim_check}
+        ended={state.ended}
         onEnd={onEnd}
       />
 
@@ -139,6 +140,7 @@ const CockpitBody = memo(function CockpitBody({
               spoken={confirmedKeys.size}
               claimCheck={state.status?.claim_check}
               checkFailed={state.checkFailed}
+              ended={state.ended !== null}
             />
           </div>
           <AlertStack

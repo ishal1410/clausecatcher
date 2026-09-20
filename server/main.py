@@ -424,7 +424,7 @@ async def session_ws(
         session.claim_check_calls += 1
         if claim_check_status != "ready":
             await send_check_error("Claim check is off - lines are not being verified against the contract.")
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             result = await asyncio.wait_for(
                 loop.run_in_executor(None, claim_checker, sentence, session.contract),
@@ -440,6 +440,7 @@ async def session_ws(
             session.claim_check_errors += 1
             logger.warning("claim check error for session %s: %s", session_id, result["error"])
             await send_check_error("Claim check is unavailable right now - this line was not verified.")
+            return  # a failed check never produces an alert
         if result.get("verdict") != "contradiction":
             return
         clause = session.get_clause(result.get("clause_id") or "")
@@ -482,12 +483,34 @@ async def session_ws(
         if speaker is not None and all(t.done() for t in speak_tasks):
             speak_tasks.append(asyncio.create_task(_speak_answer(clause)))
 
+    turn_queue: asyncio.Queue[str] = asyncio.Queue()
+
+    async def _turn_worker() -> None:
+        """Run claim checks off the STT reader loop.
+
+        `on_turn` is awaited from inside stt.py's `_reader_loop`, so awaiting a
+        multi-second Gemini call there stopped us reading the AssemblyAI socket
+        for the length of the check: later turns queued upstream, the session
+        cap stopped being enforced on time, and every subsequent alert paid the
+        backlog. Checks still run one at a time, so alerts keep their order.
+        """
+        while True:
+            sentence = await turn_queue.get()
+            try:
+                await handle_turn(sentence)
+            except Exception:  # noqa: BLE001 - one bad line must not kill the call
+                logger.exception("handle_turn failed for session %s", session_id)
+            finally:
+                turn_queue.task_done()
+
+    turn_task = asyncio.create_task(_turn_worker())
+
     async def on_turn(text: str, end_of_turn: bool) -> None:
         # live mic path: show partials + finals in the transcript pane (the
         # simulate seam renders its own line client-side, so it never comes here)
         await send({"type": "transcript", "text": text, "final": end_of_turn})
         if end_of_turn:
-            await handle_turn(text)
+            turn_queue.put_nowait(text)
 
     cleaned = False
 
@@ -496,6 +519,15 @@ async def session_ws(
         if cleaned:
             return _report(session, claim_check_status)
         cleaned = True
+        session.ws_attached = False  # let the client reconnect to a call that is still open
+        # stop checking the moment the call ends: any line still queued is
+        # dropped rather than held open behind a slow check, and an in-flight
+        # check is cancelled. The report counts what actually ran.
+        turn_task.cancel()
+        try:
+            await turn_task
+        except asyncio.CancelledError:
+            pass
         if speak_tasks:
             _, pending = await asyncio.wait(speak_tasks, timeout=SPEAK_DRAIN_TIMEOUT_S)
             for t in pending:

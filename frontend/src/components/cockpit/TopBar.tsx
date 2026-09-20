@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { ChevronRight, PhoneOff, ShieldCheck } from 'lucide-react'
+import type { ClaimCheckState } from '../../lib/protocol'
 import { StatusPill, claimPillState, type PillState } from './StatusPill'
 
 function toPillState(raw: string | undefined, connected: boolean, active: boolean): PillState {
@@ -52,8 +53,8 @@ export const TopBar = memo(function TopBar({
   connected: boolean
   stt: string | undefined
   voice: string | undefined
-  /** `status.claim_check` off the wire. Optional: Cockpit.tsx is owned by another agent. */
-  claimCheck?: string
+  /** `status.claim_check` off the wire; absent until the server reports it. */
+  claimCheck?: ClaimCheckState
   sttStreaming: boolean
   geminiActive: boolean
   voiceSpeaking: boolean

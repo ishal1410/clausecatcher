@@ -11,7 +11,9 @@
  */
 import { useCallback, useReducer, useRef } from 'react'
 import { base64ToInt16Array, int16ToFloat32, nextScheduleTime, rmsLevel } from '../lib/dsp'
-import type { Clause, ClientMessage, Report, ServerMessage } from '../lib/protocol'
+import type { ClaimCheckState, Clause, ClientMessage, Report, ServerMessage } from '../lib/protocol'
+
+export type { ClaimCheckState }
 
 export interface TranscriptLine {
   text: string
@@ -28,9 +30,6 @@ export interface AlertRecord {
 
 /** Why the session is over. `closed` = socket dropped with no server reason. */
 export type EndReason = 'idle' | 'time_limit' | 'stopped' | 'busy' | 'closed'
-
-/** Server-reported state of the Gemini claim-check leg (`status.claim_check`). */
-export type ClaimCheckState = 'ready' | 'disabled' | 'error'
 
 /** What the user is told when they type into a dead session. */
 export const NOT_CONNECTED_MESSAGE = 'Session ended — nothing was sent. Start a new session to keep testing.'
@@ -92,8 +91,8 @@ export function reducer(state: SessionState, action: Action): SessionState {
       const msg = action.msg
       switch (msg.type) {
         case 'status': {
-          // claim_check is newer than this file's protocol.ts copy — read it defensively
-          const raw = (msg as { claim_check?: string }).claim_check
+          // narrow at runtime anyway: an older deployed server may omit it
+          const raw: string | undefined = msg.claim_check
           const claim_check = raw === 'ready' || raw === 'disabled' || raw === 'error' ? raw : undefined
           return { ...state, status: { stt: msg.stt, voice: msg.voice, claim_check } }
         }
@@ -139,21 +138,17 @@ export function reducer(state: SessionState, action: Action): SessionState {
             ended: asEndReason(ended.reason) ?? 'stopped',
           }
         }
-        default: {
-          // check_error is newer than this file's protocol.ts copy
-          const other = msg as { type: string; message?: string }
-          if (other.type === 'check_error') {
-            // Latched, not transient: `error` is toasted for 5s, but a line
-            // that was never checked stays unchecked for the rest of the call,
-            // so the verdict tile must keep saying so.
-            return {
-              ...state,
-              checkFailed: true,
-              error: other.message ?? 'That line could not be checked against the contract.',
-            }
+        case 'check_error':
+          // Latched, not transient: `error` is toasted for 5s, but a line
+          // that was never checked stays unchecked for the rest of the call,
+          // so the verdict tile must keep saying so.
+          return {
+            ...state,
+            checkFailed: true,
+            error: msg.message ?? 'That line could not be checked against the contract.',
           }
+        default:
           return state
-        }
       }
     }
     default:

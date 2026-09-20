@@ -96,6 +96,29 @@ def env_vars(svc: dict, origin: str | None, allow_missing: bool) -> list[dict]:
     return out
 
 
+def merged_env_vars(api: "Render", service_id: str, desired: list[dict]) -> list[dict]:
+    """`desired`, plus any key the live service already has that we omitted.
+
+    PUT /env-vars REPLACES the whole set, and `env_vars()` deliberately skips
+    `sync: false` keys that are unset locally. Sending that list straight to an
+    EXISTING service therefore deletes those keys from it — on a second run,
+    with both API keys among them, that silently guts the running service.
+    Reading first and keeping what we did not set makes an update additive.
+    """
+    remote = api.call("GET", f"/services/{service_id}/env-vars", fake={"envVars": []})
+    rows = remote.get("envVars", remote) if isinstance(remote, dict) else (remote or [])
+    ours = {ev["key"] for ev in desired}
+    kept = []
+    for row in rows:
+        ev = row.get("envVar", row) if isinstance(row, dict) else {}
+        key, value = ev.get("key"), ev.get("value")
+        if key and key not in ours and value is not None:
+            kept.append({"key": key, "value": value})
+    if kept:
+        print(f"  keeping {len(kept)} env var(s) already on the service: {', '.join(sorted(e['key'] for e in kept))}")
+    return desired + kept
+
+
 class Render:
     def __init__(self, dry_run: bool) -> None:
         self.dry_run = dry_run
@@ -232,7 +255,7 @@ def main() -> int:
         api.call("PATCH", f"/services/{service['id']}", {"repo": args.repo, "branch": args.branch, "autoDeploy": "yes", "serviceDetails": service_details})
         # keep a previously pinned origin so this intermediate deploy doesn't open the WS to any origin
         url0 = service.get("serviceDetails", {}).get("url") or f"https://{name}.onrender.com"
-        api.call("PUT", f"/services/{service['id']}/env-vars", env_vars(svc, url0, mode))
+        api.call("PUT", f"/services/{service['id']}/env-vars", merged_env_vars(api, service["id"], env_vars(svc, url0, mode)))
         deploy_id = api.call("POST", f"/services/{service['id']}/deploys", {"clearCache": "do_not_clear"}, fake={"id": "dep-DRYRUN1"})["id"]
 
     sid = service["id"]
@@ -243,7 +266,7 @@ def main() -> int:
     # just took ten minutes on the free tier
     url = service.get("serviceDetails", {}).get("url") or f"https://{name}.onrender.com"
     print(f"service URL: {url}")
-    api.call("PUT", f"/services/{sid}/env-vars", env_vars(svc, url, mode))
+    api.call("PUT", f"/services/{sid}/env-vars", merged_env_vars(api, sid, env_vars(svc, url, mode)))
     # env-only change: restart the already-built image instead of a second slow free-tier build
     deploy2 = api.call("POST", f"/services/{sid}/deploys", {"deployMode": "deploy_only"}, fake={"id": "dep-DRYRUN2"})["id"]
     wait_live(api, sid, deploy2, args.timeout_s)

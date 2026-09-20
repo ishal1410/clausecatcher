@@ -35,6 +35,7 @@ import io
 import json
 import logging
 import multiprocessing
+import os
 import re
 import sys
 from concurrent.futures import ProcessPoolExecutor
@@ -43,7 +44,7 @@ from pathlib import Path
 
 import pdfplumber
 
-MAX_PDF_BYTES = 5 * 1024 * 1024
+MAX_PDF_BYTES = int(os.environ.get("CLAUSECATCHER_MAX_PDF_BYTES", 5 * 1024 * 1024))
 MAX_PAGES = 50
 WORKER_MEM_LIMIT_BYTES = 300 * 1024 * 1024  # RLIMIT_AS for the parse worker (Linux only)
 
@@ -79,7 +80,7 @@ def extract_clauses(pdf_bytes: bytes) -> list[dict]:
     if not isinstance(pdf_bytes, (bytes, bytearray)):
         raise ClauseExtractionError("pdf_bytes must be bytes")
     if len(pdf_bytes) > MAX_PDF_BYTES:
-        raise ClauseExtractionError("PDF exceeds 5 MB size limit")
+        raise ClauseExtractionError(f"PDF exceeds the {MAX_PDF_BYTES // (1024 * 1024)} MB size limit")
 
     pages_lines: list[list[str]] = []
     try:
